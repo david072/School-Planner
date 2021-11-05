@@ -8,21 +8,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
 
 @Composable
 fun AppTopAppBar(
-    navController: NavController,
+    navController: NavController? = null,
     backButton: Boolean = false,
     onBackPressed: (() -> Unit)? = null
 ) {
-    val context = LocalContext.current
-
-    if (!backButton)
-        TopAppBar(title = { Text(text = context.resources.getString(R.string.app_name)) })
+    if (!backButton || navController == null)
+        TopAppBar(title = { Text(text = stringResource(R.string.app_name)) })
     else TopAppBar(
-        title = { Text(text = context.resources.getString(R.string.app_name)) },
+        title = { Text(text = stringResource(R.string.app_name)) },
         navigationIcon = {
             IconButton(onClick = {
                 navController.popBackStack()

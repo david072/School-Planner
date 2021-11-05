@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="add_task_title_label">Titel</string>
+    <string name="add_task_description_label">Beschreibung (wichtige Dinge, …)</string>
+    <string name="add_task_due_date_selector">Fälligkeitsdatum</string>
+    <string name="add_task_reminder_selector">Erinnerung</string>
+    <string name="add_task_subject_selector">Fach</string>
+    <string name="add_task_button">Aufgabe hinzufügen</string>
+</resources>

@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">School Planner</string>
+    <string name="app_name" translatable="false">School Planner</string>
+    <string name="add_task_title_label">Title</string>
+    <string name="add_task_description_label">Description (important notes, …)</string>
+    <string name="add_task_due_date_selector">Due Date</string>
+    <string name="add_task_reminder_selector">Reminder</string>
+    <string name="add_task_subject_selector">Subject</string>
+    <string name="add_task_button">Add Task</string>
 </resources>

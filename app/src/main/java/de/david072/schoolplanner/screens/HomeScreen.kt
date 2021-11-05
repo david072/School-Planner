@@ -13,7 +13,7 @@ import de.david072.schoolplanner.ui.AppTopAppBar
 @Composable
 fun HomeScreen(navController: NavController) {
     Scaffold(topBar = { AppTopAppBar(navController) }, floatingActionButton = {
-        FloatingActionButton(onClick = {}, backgroundColor = MaterialTheme.colors.primary) {
+        FloatingActionButton(onClick = { navController.navigate("add_task") }, backgroundColor = MaterialTheme.colors.primary) {
             Icon(Icons.Filled.Add, "")
         }
     }) { contentPadding ->
