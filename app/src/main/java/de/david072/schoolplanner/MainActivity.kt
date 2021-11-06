@@ -6,8 +6,9 @@ import androidx.activity.compose.setContent
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import de.david072.schoolplanner.screens.AddTaskScreen
 import de.david072.schoolplanner.screens.HomeScreen
+import de.david072.schoolplanner.screens.SubjectSelectorDialog
+import de.david072.schoolplanner.screens.add_task.AddTaskScreen
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController = navController, startDestination = "home_screen") {
                     composable("home_screen") { HomeScreen(navController) }
                     composable("add_task") { AddTaskScreen(navController) }
+                    composable("add_task/subject_select_dialog") { SubjectSelectorDialog() }
                 }
             }
         }

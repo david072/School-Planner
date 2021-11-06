@@ -1,5 +1,6 @@
-package de.david072.schoolplanner.screens
+package de.david072.schoolplanner.screens.add_task
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 
 @Composable
 fun AddTaskScreen(navController: NavController?) {
@@ -110,7 +112,11 @@ fun CustomSpacer() {
 }
 
 @Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(locale = "de")
 @Composable
 private fun Preview() {
-    AddTaskScreen(null)
+    SchoolPlannerTheme {
+        AddTaskScreen(null)
+    }
 }
