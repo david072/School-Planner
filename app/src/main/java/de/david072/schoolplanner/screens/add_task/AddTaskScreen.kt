@@ -1,7 +1,6 @@
 package de.david072.schoolplanner.screens.add_task
 
 import android.content.res.Configuration
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -10,16 +9,19 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.School
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
+import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 
 @Composable
@@ -43,16 +45,30 @@ fun AddTaskScreen(navController: NavController?) {
                     text = stringResource(R.string.add_task_due_date_selector),
                     Icons.Filled.DateRange
                 ) { /*TODO*/ }
-                CustomSpacer()
+                HorizontalSpacer()
                 HorizontalButton(
                     text = stringResource(R.string.add_task_reminder_selector),
                     Icons.Filled.Notifications
                 ) { /*TODO*/ }
-                CustomSpacer()
+                HorizontalSpacer()
+
+                val subjectId = navController?.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.getLiveData<Int>("subject_id")
+                    ?.observeAsState()
+
+                var subjectText = stringResource(R.string.add_task_subject_selector)
+                if (subjectId?.value != null) {
+                    val subjectQueryState = AppDatabase.instance(LocalContext.current).subjectDao()
+                        .findById(subjectId.value!!).collectAsState(initial = null)
+                    if (subjectQueryState.value != null) subjectText =
+                        subjectQueryState.value!!.name
+                }
+
                 HorizontalButton(
-                    text = stringResource(R.string.add_task_subject_selector),
+                    text = subjectText,
                     Icons.Filled.School
-                ) { /*TODO*/ }
+                ) { navController?.navigate("subject_select_dialog") }
 
                 TextField(
                     value = description,
@@ -99,16 +115,6 @@ private fun HorizontalButton(
             style = MaterialTheme.typography.subtitle1
         )
     }
-}
-
-@Composable
-fun CustomSpacer() {
-    Spacer(
-        modifier = Modifier
-            .background(Color.Gray)
-            .height(1.dp)
-            .fillMaxWidth()
-    )
 }
 
 @Preview
