@@ -23,6 +23,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -55,7 +56,6 @@ fun AddTaskScreen(navController: NavController?) {
                 )
 
                 var dueDate: LocalDate? by remember { mutableStateOf(null) }
-
                 HorizontalButton(
                     text = if (dueDate == null) stringResource(R.string.add_task_due_date_selector) else dueDate!!.format(
                         DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
@@ -63,10 +63,12 @@ fun AddTaskScreen(navController: NavController?) {
                     Icons.Filled.DateRange
                 ) { pickDate(context) { dueDate = it } }
                 HorizontalSpacer()
+
+                var reminderChoice: String? by remember { mutableStateOf(null) }
                 HorizontalButton(
-                    text = stringResource(R.string.add_task_reminder_selector),
+                    text = if (reminderChoice == null) stringResource(R.string.add_task_reminder_selector) else reminderChoice!!,
                     Icons.Filled.Notifications
-                ) { /*TODO*/ }
+                ) { pickReminder(context) { reminderChoice = it } }
                 HorizontalSpacer()
 
                 val subjectId = navController?.currentBackStackEntry
@@ -138,6 +140,15 @@ private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
             }
             show((context as FragmentActivity).supportFragmentManager, "date-picker")
         }
+}
+
+private fun pickReminder(context: Context, onSelected: (selected: String) -> Unit) {
+    MaterialAlertDialogBuilder(context)
+        .setTitle("Pick reminder")
+        .setItems(R.array.reminder_choices) { _, which ->
+            onSelected(context.resources.getStringArray(R.array.reminder_choices)[which])
+        }
+        .show()
 }
 
 @Composable

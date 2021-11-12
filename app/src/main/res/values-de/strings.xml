@@ -6,4 +6,11 @@
     <string name="add_task_reminder_selector">Erinnerung</string>
     <string name="add_task_subject_selector">Fach</string>
     <string name="add_task_button">Aufgabe hinzufügen</string>
+    <string name="reminder_1_day_before">1 Tag davor</string>
+    <string name="reminder_2_days_before">2 Tage davor</string>
+    <string name="reminder_3_days_before">3 Tage davor</string>
+    <string name="reminder_4_days_before">4 Tage davor</string>
+    <string name="reminder_1_week_before">1 Woche davor</string>
+    <string name="reminder_2_weeks_before">2 Wochen davor</string>
+    <string name="reminder_none">Keine Erinnerung</string>
 </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="reminder_choices">
+        <item>@string/reminder_none</item>
+        <item>@string/reminder_1_day_before</item>
+        <item>@string/reminder_2_days_before</item>
+        <item>@string/reminder_3_days_before</item>
+        <item>@string/reminder_4_days_before</item>
+        <item>@string/reminder_1_week_before</item>
+        <item>@string/reminder_2_weeks_before</item>
+    </string-array>
+</resources>
