@@ -1,8 +1,8 @@
 package de.david072.schoolplanner
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
@@ -12,7 +12,7 @@ import de.david072.schoolplanner.screens.SubjectSelectorDialog
 import de.david072.schoolplanner.screens.add_task.AddTaskScreen
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

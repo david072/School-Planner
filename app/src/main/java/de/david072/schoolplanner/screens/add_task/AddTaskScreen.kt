@@ -1,6 +1,8 @@
 package de.david072.schoolplanner.screens.add_task
 
+import android.content.Context
 import android.content.res.Configuration
+import android.os.Parcel
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -17,15 +19,26 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
+import com.google.android.material.datepicker.CalendarConstraints
+import com.google.android.material.datepicker.MaterialDatePicker
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.*
 
 @Composable
 fun AddTaskScreen(navController: NavController?) {
+    val context = LocalContext.current
+
     Scaffold(topBar = { AppTopAppBar(navController, true) }) {
         Box(modifier = Modifier.padding(PaddingValues(all = 10.dp))) {
             var title by remember { mutableStateOf("") }
@@ -41,10 +54,14 @@ fun AddTaskScreen(navController: NavController?) {
                     label = { Text(stringResource(R.string.add_task_title_label)) }
                 )
 
+                var dueDate: LocalDate? by remember { mutableStateOf(null) }
+
                 HorizontalButton(
-                    text = stringResource(R.string.add_task_due_date_selector),
+                    text = if (dueDate == null) stringResource(R.string.add_task_due_date_selector) else dueDate!!.format(
+                        DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+                    ),
                     Icons.Filled.DateRange
-                ) { /*TODO*/ }
+                ) { pickDate(context) { dueDate = it } }
                 HorizontalSpacer()
                 HorizontalButton(
                     text = stringResource(R.string.add_task_reminder_selector),
@@ -92,6 +109,35 @@ fun AddTaskScreen(navController: NavController?) {
             }
         }
     }
+}
+
+private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
+    MaterialDatePicker.Builder
+        .datePicker()
+        .setCalendarConstraints(
+            CalendarConstraints.Builder()
+                .setStart(LocalDate.now().month.value.toLong())
+                .setValidator(object : CalendarConstraints.DateValidator {
+                    override fun describeContents(): Int = 0
+                    override fun writeToParcel(dest: Parcel?, flags: Int) {}
+
+                    // Can only select tomorrow and days after that
+                    override fun isValid(date: Long): Boolean =
+                        date > Calendar.getInstance().timeInMillis
+                }).build()
+        )
+        .build()
+        .apply {
+            addOnPositiveButtonClickListener { selection ->
+                onDateSelected(
+                    LocalDateTime.ofInstant(
+                        Instant.ofEpochMilli(selection),
+                        TimeZone.getDefault().toZoneId()
+                    ).toLocalDate()
+                )
+            }
+            show((context as FragmentActivity).supportFragmentManager, "date-picker")
+        }
 }
 
 @Composable
