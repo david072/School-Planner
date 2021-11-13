@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "subjects")
 data class Subject(
-    @PrimaryKey(autoGenerate = true) val uid: Int,
+    @PrimaryKey(autoGenerate = true) val uid: Int = 0,
     val name: String,
     val abbreviation: String,
     @ColumnInfo(name = "color") val colorValue: Int

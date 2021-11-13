@@ -7,7 +7,7 @@ import java.time.LocalDate
 
 @Entity(tableName = "tasks")
 data class Task(
-    @PrimaryKey(autoGenerate = true) val uid: Int,
+    @PrimaryKey(autoGenerate = true) val uid: Int = 0,
     @ColumnInfo val title: String,
     @ColumnInfo(name = "due_date") val dueDate: LocalDate,
     @ColumnInfo val reminder: LocalDate,
