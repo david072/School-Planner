@@ -18,4 +18,5 @@
     <string name="delete_dialog_message">Do you really want to delete this task?</string>
     <string name="delete_dialog_positive_button">Delete</string>
     <string name="delete_dialog_negative_button">Cancel</string>
+    <string name="edit_task_button">Save</string>
 </resources>

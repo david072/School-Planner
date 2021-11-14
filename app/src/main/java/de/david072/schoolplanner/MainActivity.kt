@@ -22,17 +22,16 @@ class MainActivity : AppCompatActivity() {
             SchoolPlannerTheme {
                 val navController = rememberNavController()
 
+                val taskIdArgument = navArgument("taskId") { type = NavType.IntType }
+
                 NavHost(navController = navController, startDestination = "home_screen") {
                     composable("home_screen") { HomeScreen(navController) }
                     composable("add_task") { AddTaskScreen(navController) }
-                    composable(
-                        "view_task/{taskId}",
-                        arguments = listOf(navArgument("taskId") { type = NavType.IntType })
-                    ) { backStackEntry ->
-                        ViewTaskScreen(
-                            navController,
-                            backStackEntry.arguments!!.getInt("taskId")
-                        )
+                    composable("edit_task/{taskId}", arguments = listOf(taskIdArgument)) {
+                        AddTaskScreen(navController, it.arguments?.getInt("taskId"))
+                    }
+                    composable("view_task/{taskId}", arguments = listOf(taskIdArgument)) {
+                        ViewTaskScreen(navController, it.arguments!!.getInt("taskId"))
                     }
                     dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
                 }

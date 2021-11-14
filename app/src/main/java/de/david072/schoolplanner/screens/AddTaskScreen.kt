@@ -7,9 +7,9 @@ import android.os.Parcel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.School
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -28,6 +28,7 @@ import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
+import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -35,6 +36,9 @@ import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -44,12 +48,17 @@ import java.time.format.FormatStyle
 import java.util.*
 
 @Composable
-fun AddTaskScreen(navController: NavController?) {
+fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     val context = LocalContext.current
     val viewModel = viewModel<AddTaskViewModel>()
 
+    if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit)
+    val taskToEdit = viewModel.taskToEdit.collectAsState()
+
     Scaffold(topBar = { AppTopAppBar(navController, true) }) {
         Box(modifier = Modifier.padding(PaddingValues(all = 10.dp))) {
+            var didSetValues by remember { mutableStateOf(false) }
+
             var title by remember { mutableStateOf("") }
             var titleIsError by remember { mutableStateOf(false) }
             var description by remember { mutableStateOf("") }
@@ -63,8 +72,25 @@ fun AddTaskScreen(navController: NavController?) {
             val subjectId = navController?.currentBackStackEntry
                 ?.savedStateHandle
                 ?.getLiveData<Int>("subject_id")
+                // Modify the value the first time if we're editing
+                ?.apply {
+                    if (taskToEdit.value != null && !didSetValues) value =
+                        taskToEdit.value!!.subjectId
+                }
                 ?.observeAsState()
             var subjectIsError by remember { mutableStateOf(false) }
+
+            // Set all of the values if we're editing. Only do this the first time though
+            // as we need to allow that changes are made to this for editing
+            if (taskToEdit.value != null && !didSetValues) {
+                val task = taskToEdit.value!!
+                title = task.title
+                description = task.description ?: ""
+                dueDate = task.dueDate
+                reminderIndex = Utils.getReminderIndex(task.dueDate, task.reminder)
+                reminderStartDate = task.reminder
+                didSetValues = true
+            }
 
             fun validate(): Boolean {
                 var valid = true
@@ -113,7 +139,7 @@ fun AddTaskScreen(navController: NavController?) {
                     }
 
                     val daysDifference = when (reminderIndex) {
-                        in 1..4 -> reminderIndex
+                        in 0..4 -> reminderIndex
                         5 -> 7
                         6 -> 14
                         else -> -1
@@ -142,10 +168,10 @@ fun AddTaskScreen(navController: NavController?) {
                 HorizontalSpacer()
 
                 HorizontalButton(
-                    text = if (reminderStartDate == null) {
+                    text = if (reminderStartDate == null || reminderIndex == -2) {
                         stringResource(R.string.add_task_reminder_selector)
                     } else stringArrayResource(R.array.reminder_choices)[reminderIndex],
-                    icon = Icons.Filled.Notifications,
+                    icon = Icons.Outlined.Notifications,
                     isError = reminderIsError,
                 ) {
                     pickReminder(context) {
@@ -167,7 +193,7 @@ fun AddTaskScreen(navController: NavController?) {
 
                 HorizontalButton(
                     text = subjectText,
-                    icon = Icons.Filled.School,
+                    icon = Icons.Outlined.School,
                     isError = subjectIsError
                 ) { navController?.navigate("subject_select_dialog") }
 
@@ -185,19 +211,28 @@ fun AddTaskScreen(navController: NavController?) {
                         onClick = {
                             if (!validate()) return@Button
                             Task(
+                                uid = if (taskToEdit.value != null) taskToEdit.value!!.uid else 0,
                                 title = title,
                                 dueDate = dueDate!!,
                                 reminder = reminderStartDate!!,
                                 subjectId = subjectId!!.value!!,
                                 description = description
-                            ).let { viewModel.insert(it) }
+                            ).let {
+                                if (taskToEdit.value != null) viewModel.update(it)
+                                else viewModel.insert(it)
+                            }
                             navController.popBackStack()
                         },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.add_task_button))
+                        Text(
+                            if (taskToEdit.value == null) stringResource(R.string.add_task_button)
+                            else stringResource(
+                                R.string.edit_task_button
+                            )
+                        )
                     }
                 }
             }
@@ -206,10 +241,27 @@ fun AddTaskScreen(navController: NavController?) {
 }
 
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
+    private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
+    val taskToEdit: StateFlow<Task?> = _taskToEdit
+
+    fun setTaskId(taskId: Int) {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
+                .findById(taskId).collect { _taskToEdit.value = it }
+        }
+    }
+
     fun insert(task: Task) {
         viewModelScope.launch(Dispatchers.IO) {
             AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
                 .insert(task)
+        }
+    }
+
+    fun update(task: Task) {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
+                .update(task)
         }
     }
 }

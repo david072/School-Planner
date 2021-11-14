@@ -87,11 +87,17 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                 icon = Icons.Outlined.Event,
             )
             HorizontalSpacer()
+
+            val reminderText = if (task.value != null) {
+                val reminderIndex =
+                    Utils.getReminderIndex(task.value!!.dueDate, task.value!!.reminder)
+                if (reminderIndex == -1) {
+                    task.value!!.reminder.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
+                } else stringArrayResource(R.array.reminder_choices)[reminderIndex]
+            } else stringResource(R.string.add_task_reminder_selector)
+
             HorizontalButton(
-                text = if (task.value != null) stringArrayResource(R.array.reminder_choices)[Utils.getReminderIndex(
-                    dueDate = task.value!!.dueDate,
-                    reminderStartDate = task.value!!.reminder
-                )] else "",
+                text = reminderText,
                 icon = Icons.Outlined.Notifications,
             )
             HorizontalSpacer()
