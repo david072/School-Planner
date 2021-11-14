@@ -14,6 +14,9 @@ import androidx.compose.material.icons.outlined.School
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+
+
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -31,6 +34,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -63,9 +67,10 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
             )
             HorizontalSpacer()
             HorizontalButton(
-                text = task.value?.reminder?.format(
-                    DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
-                ) ?: "",
+                text = if (task.value != null) getReminder(
+                    dueDate = task.value!!.dueDate,
+                    reminderStartDate = task.value!!.reminder
+                ) else "",
                 icon = Icons.Outlined.Notifications,
             )
             HorizontalSpacer()
@@ -85,6 +90,18 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                 label = { Text(stringResource(R.string.add_task_description_label)) },
             )
         }
+    }
+}
+
+@Composable
+private fun getReminder(dueDate: LocalDate, reminderStartDate: LocalDate): String {
+    val difference = (dueDate.toEpochDay() - reminderStartDate.toEpochDay()).toInt()
+    val array = stringArrayResource(R.array.reminder_choices)
+    return when (difference) {
+        in 0..4 -> array[difference]
+        7 -> array[5]
+        14 -> array[6]
+        else -> reminderStartDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
     }
 }
 
