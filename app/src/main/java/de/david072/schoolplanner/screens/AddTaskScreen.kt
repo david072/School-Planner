@@ -1,23 +1,19 @@
-package de.david072.schoolplanner.screens.add_task
+package de.david072.schoolplanner.screens
 
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Parcel
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.outlined.Event
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -35,6 +31,7 @@ import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.Dispatchers
@@ -133,7 +130,7 @@ fun AddTaskScreen(navController: NavController?) {
                     text = if (dueDate == null) stringResource(R.string.add_task_due_date_selector) else dueDate!!.format(
                         DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
                     ),
-                    icon = Icons.Filled.DateRange,
+                    icon = Icons.Outlined.Event,
                     isError = dueDateIsError
                 ) {
                     pickDate(context) {
@@ -251,41 +248,6 @@ private fun pickReminder(context: Context, onSelected: (selectedIndex: Int) -> U
         .setTitle("Pick reminder")
         .setItems(R.array.reminder_choices) { _, which -> onSelected(which) }
         .show()
-}
-
-@Composable
-private fun HorizontalButton(
-    text: String,
-    icon: ImageVector,
-    contentDescription: String = "",
-    isError: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .clickable { onClick() }
-            .padding(top = 15.dp, bottom = 15.dp, start = 10.dp, end = 10.dp)
-            .fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(icon, contentDescription)
-        Text(
-            text,
-            modifier = Modifier.padding(start = 20.dp),
-            style = MaterialTheme.typography.subtitle1
-        )
-
-        if (isError) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Filled.Error,
-                    "",
-                    tint = Color.Red,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
-            }
-        }
-    }
 }
 
 @Preview

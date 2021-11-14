@@ -1,16 +1,17 @@
 package de.david072.schoolplanner.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -32,6 +33,41 @@ fun AppTopAppBar(
                 onBackPressed?.invoke()
             }) { Icon(Icons.Filled.ArrowBack, "") }
         })
+}
+
+@Composable
+fun HorizontalButton(
+    text: String,
+    icon: ImageVector,
+    contentDescription: String = "",
+    isError: Boolean = false,
+    onClick: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
+            .padding(top = 15.dp, bottom = 15.dp, start = 10.dp, end = 10.dp)
+            .fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription)
+        Text(
+            text,
+            modifier = Modifier.padding(start = 20.dp),
+            style = MaterialTheme.typography.subtitle1
+        )
+
+        if (isError) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    Icons.Filled.Error,
+                    "",
+                    tint = Color.Red,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+            }
+        }
+    }
 }
 
 @Composable

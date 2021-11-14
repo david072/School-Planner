@@ -48,7 +48,7 @@ fun HomeScreen(navController: NavController?) {
             val subjects = viewModel.subjects.collectAsState()
             LazyColumn {
                 items(subjects.value.size) { index ->
-                    SubjectListItem(subjects.value[index], viewModel)
+                    SubjectListItem(subjects.value[index], viewModel, navController)
                 }
             }
         }
@@ -56,7 +56,11 @@ fun HomeScreen(navController: NavController?) {
 }
 
 @Composable
-fun SubjectListItem(subject: Subject, viewModel: HomeScreenViewModel) {
+fun SubjectListItem(
+    subject: Subject,
+    viewModel: HomeScreenViewModel,
+    navController: NavController?
+) {
     val tasks = viewModel.getTasks(subject.uid).collectAsState(initial = emptyList())
     var isExpanded by remember { mutableStateOf(true) }
 
@@ -98,7 +102,7 @@ fun SubjectListItem(subject: Subject, viewModel: HomeScreenViewModel) {
             if (isExpanded) {
                 FlowColumn {
                     repeat(tasks.value.size) { index ->
-                        TaskListItem(task = tasks.value[index])
+                        TaskListItem(task = tasks.value[index], navController)
                     }
                 }
             }
@@ -107,11 +111,13 @@ fun SubjectListItem(subject: Subject, viewModel: HomeScreenViewModel) {
 }
 
 @Composable
-fun TaskListItem(task: Task) {
+fun TaskListItem(task: Task, navController: NavController?) {
     Box(modifier = Modifier
         .padding(top = 5.dp)
         .fillMaxWidth()
-        .clickable { }) {
+        .clickable {
+            navController?.navigate("view_task/${task.uid}")
+        }) {
         Text(text = task.title)
     }
 }
