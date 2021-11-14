@@ -1,6 +1,7 @@
 package de.david072.schoolplanner.database.daos
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import de.david072.schoolplanner.database.entities.Task
@@ -19,4 +20,7 @@ interface TaskDao {
 
     @Insert
     suspend fun insert(task: Task)
+
+    @Delete
+    suspend fun delete(task: Task)
 }

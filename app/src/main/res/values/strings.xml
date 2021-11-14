@@ -13,4 +13,9 @@
     <string name="reminder_1_week_before">1 week before</string>
     <string name="reminder_2_weeks_before">2 weeks before</string>
     <string name="reminder_none">No reminder</string>
+    <string name="pick_reminder_dialog_title">Pick reminder</string>
+    <string name="delete_dialog_title">Delete task?</string>
+    <string name="delete_dialog_message">Do you really want to delete this task?</string>
+    <string name="delete_dialog_positive_button">Delete</string>
+    <string name="delete_dialog_negative_button">Cancel</string>
 </resources>

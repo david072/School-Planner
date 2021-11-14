@@ -4,18 +4,16 @@ import android.app.Application
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-
-
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -23,6 +21,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
@@ -40,13 +39,31 @@ import java.time.format.FormatStyle
 
 @Composable
 fun ViewTaskScreen(navController: NavController?, taskId: Int) {
+    val context = LocalContext.current
     val viewModel = viewModel<ViewTaskScreenViewModel>()
     viewModel.setTaskId(taskId)
 
     val task = viewModel.task.collectAsState()
     val subject = viewModel.subject.collectAsState()
 
-    Scaffold(topBar = { AppTopAppBar(navController, true) }) {
+    Scaffold(topBar = {
+        AppTopAppBar(navController, true, actions = {
+            IconButton(onClick = {
+                MaterialAlertDialogBuilder(context)
+                    .setTitle(context.resources.getString(R.string.delete_dialog_title))
+                    .setMessage(context.resources.getString(R.string.delete_dialog_message))
+                    .setPositiveButton(context.resources.getString(R.string.delete_dialog_positive_button)) { dialog, _ ->
+                        viewModel.deleteTask()
+                        dialog.dismiss()
+                        navController?.popBackStack()
+                    }
+                    .setNegativeButton(context.resources.getString(R.string.delete_dialog_negative_button)) { dialog, _ -> dialog.cancel() }
+                    .show()
+            }) {
+                Icon(Icons.Outlined.Delete, "")
+            }
+        })
+    }) {
         Column(modifier = Modifier.padding(all = 10.dp)) {
             // TODO: Prevent the text field from being selectable
             TextField(
@@ -117,12 +134,23 @@ class ViewTaskScreenViewModel(application: Application) :
         viewModelScope.launch {
             val appDatabase =
                 AppDatabase.instance((getApplication() as Application).applicationContext)
-            appDatabase.taskDao().findById(taskId).collect {
-                _task.value = it
-                appDatabase.subjectDao().findById(it.subjectId).collect { subject ->
+            appDatabase.taskDao().findById(taskId).collect { task: Task? ->
+                _task.value = task
+                // Task could be null if it has been deleted (deleteTask())
+                if (task == null) return@collect
+                appDatabase.subjectDao().findById(task.subjectId).collect { subject ->
                     _subject.value = subject
                 }
             }
+        }
+    }
+
+    fun deleteTask() {
+        if (task.value == null) return
+
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .delete(task.value!!)
         }
     }
 }

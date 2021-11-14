@@ -13,4 +13,9 @@
     <string name="reminder_1_week_before">1 Woche davor</string>
     <string name="reminder_2_weeks_before">2 Wochen davor</string>
     <string name="reminder_none">Keine Erinnerung</string>
+    <string name="pick_reminder_dialog_title">Erinnerungsdatum auswählen</string>
+    <string name="delete_dialog_title">Aufgabe löschen?</string>
+    <string name="delete_dialog_message">Möchtest du diese Aufgabe wirklich löschen?</string>
+    <string name="delete_dialog_positive_button">Löschen</string>
+    <string name="delete_dialog_negative_button">Abbrechen</string>
 </resources>

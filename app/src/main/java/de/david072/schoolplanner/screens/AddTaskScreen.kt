@@ -245,7 +245,7 @@ private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
 
 private fun pickReminder(context: Context, onSelected: (selectedIndex: Int) -> Unit) {
     MaterialAlertDialogBuilder(context)
-        .setTitle("Pick reminder")
+        .setTitle(context.resources.getString(R.string.pick_reminder_dialog_title))
         .setItems(R.array.reminder_choices) { _, which -> onSelected(which) }
         .show()
 }
