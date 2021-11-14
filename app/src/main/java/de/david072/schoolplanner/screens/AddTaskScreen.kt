@@ -104,12 +104,12 @@ fun AddTaskScreen(navController: NavController?) {
                     isError = titleIsError
                 )
 
-                val evalReminderStartDate = evalReminderStartDate@{
-                    if (reminderIndex == -2) return@evalReminderStartDate
+                fun evalReminderStartDate() {
+                    if (reminderIndex == -2) return
 
                     if (reminderIndex == 0) {
-                        reminderStartDate = null
-                        return@evalReminderStartDate
+                        reminderStartDate = dueDate
+                        return
                     }
 
                     val daysDifference = when (reminderIndex) {
