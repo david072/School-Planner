@@ -6,10 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -23,6 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
+import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
@@ -33,7 +31,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -59,8 +56,15 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                     }
                     .setNegativeButton(context.resources.getString(R.string.delete_dialog_negative_button)) { dialog, _ -> dialog.cancel() }
                     .show()
+
             }) {
                 Icon(Icons.Outlined.Delete, "")
+            }
+
+            IconButton(onClick = {
+                navController?.navigate("edit_task/${taskId}")
+            }) {
+                Icon(Icons.Outlined.Edit, "")
             }
         })
     }) {
@@ -84,10 +88,10 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
             )
             HorizontalSpacer()
             HorizontalButton(
-                text = if (task.value != null) getReminder(
+                text = if (task.value != null) stringArrayResource(R.array.reminder_choices)[Utils.getReminderIndex(
                     dueDate = task.value!!.dueDate,
                     reminderStartDate = task.value!!.reminder
-                ) else "",
+                )] else "",
                 icon = Icons.Outlined.Notifications,
             )
             HorizontalSpacer()
@@ -107,18 +111,6 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                 label = { Text(stringResource(R.string.add_task_description_label)) },
             )
         }
-    }
-}
-
-@Composable
-private fun getReminder(dueDate: LocalDate, reminderStartDate: LocalDate): String {
-    val difference = (dueDate.toEpochDay() - reminderStartDate.toEpochDay()).toInt()
-    val array = stringArrayResource(R.array.reminder_choices)
-    return when (difference) {
-        in 0..4 -> array[difference]
-        7 -> array[5]
-        14 -> array[6]
-        else -> reminderStartDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
     }
 }
 
