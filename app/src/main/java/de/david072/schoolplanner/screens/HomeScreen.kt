@@ -13,6 +13,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,7 +36,13 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(navController: NavController?) {
-    Scaffold(topBar = { AppTopAppBar(navController) }, floatingActionButton = {
+    Scaffold(topBar = {
+        AppTopAppBar(navController, actions = {
+            IconButton(onClick = { navController?.navigate("settings") }) {
+                Icon(Icons.Outlined.Settings, "")
+            }
+        })
+    }, floatingActionButton = {
         FloatingActionButton(
             onClick = { navController?.navigate("add_task") },
             backgroundColor = MaterialTheme.colors.primary
