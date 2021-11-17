@@ -6,8 +6,10 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.alorma.compose.settings.ui.SettingsMenuLink
+import de.david072.schoolplanner.R
 import de.david072.schoolplanner.ui.AppTopAppBar
 
 @Composable
@@ -17,7 +19,7 @@ fun SettingsScreen(navController: NavController) {
     ) {
         SettingsMenuLink(
             icon = { Icon(Icons.Outlined.School, "") },
-            title = { Text("Edit Subjects") },
+            title = { Text(stringResource(R.string.edit_subjects_setting_title)) },
             onClick = { navController.navigate("settings/edit_subjects") }
         )
     }

@@ -13,6 +13,7 @@ import de.david072.schoolplanner.screens.AddTaskScreen
 import de.david072.schoolplanner.screens.HomeScreen
 import de.david072.schoolplanner.screens.SubjectSelectorDialog
 import de.david072.schoolplanner.screens.ViewTaskScreen
+import de.david072.schoolplanner.screens.settings.AddSubjectScreen
 import de.david072.schoolplanner.screens.settings.EditSubjectsScreen
 import de.david072.schoolplanner.screens.settings.SettingsScreen
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
                     composable("settings") { SettingsScreen(navController) }
                     composable("settings/edit_subjects") { EditSubjectsScreen(navController) }
+                    composable("settings/add_subject") { AddSubjectScreen(navController) }
 
                     dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
                 }

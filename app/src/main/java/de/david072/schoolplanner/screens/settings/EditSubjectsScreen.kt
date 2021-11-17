@@ -4,8 +4,9 @@ import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
+import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
@@ -23,8 +24,17 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Composable
-fun EditSubjectsScreen(navController: NavController?) {
-    Scaffold(topBar = { AppTopAppBar(navController = navController, backButton = true) }) {
+fun EditSubjectsScreen(navController: NavController) {
+    Scaffold(
+        topBar = { AppTopAppBar(navController = navController, backButton = true) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { navController.navigate("settings/add_subject") },
+                backgroundColor = MaterialTheme.colors.primary
+            ) {
+                Icon(Icons.Filled.Add, "")
+            }
+        }) {
         val viewModel = viewModel<EditSubjectsScreenViewModel>()
         val subjects = viewModel.subjects.collectAsState()
         LazyColumn {
