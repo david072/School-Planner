@@ -18,7 +18,7 @@
     <string name="delete_dialog_message">Do you really want to delete this task?</string>
     <string name="delete_dialog_positive_button">Delete</string>
     <string name="delete_dialog_negative_button">Cancel</string>
-    <string name="edit_task_button">Save</string>
+    <string name="general_save">Save</string>
     <string name="edit_subjects_setting_title">Edit Subjects</string>
     <string name="add_subject_name_label">Name</string>
     <string name="add_subject_abbreviation_label">Abbreviation</string>

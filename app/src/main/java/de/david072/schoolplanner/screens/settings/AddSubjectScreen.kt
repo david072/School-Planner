@@ -25,16 +25,23 @@ import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.ui.AppTopAppBar
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
 
 @OptIn(ExperimentalGraphicsApi::class)
 @Composable
-fun AddSubjectScreen(navController: NavController) {
+fun AddSubjectScreen(navController: NavController, subjectIdToEdit: Int? = null) {
     val viewModel = viewModel<AddSubjectScreenViewModel>()
 
+    if (subjectIdToEdit != null) viewModel.setSubjectId(subjectIdToEdit)
+    val subjectToEdit = viewModel.subject.collectAsState()
+
     Scaffold(topBar = { AppTopAppBar(navController = navController, backButton = true) }) {
+        var didSetValues by remember { mutableStateOf(false) }
+
         var name by remember { mutableStateOf("") }
         var nameIsError by remember { mutableStateOf(false) }
         var abbreviation by remember { mutableStateOf("") }
@@ -44,8 +51,19 @@ fun AddSubjectScreen(navController: NavController) {
         var color by remember {
             val random = Random()
             mutableStateOf(
-                Color(random.nextInt(256), random.nextInt(256), random.nextInt(256))
+                Color(
+                    random.nextInt(256),
+                    random.nextInt(256),
+                    random.nextInt(256)
+                )
             )
+        }
+
+        if (subjectToEdit.value != null && !didSetValues) {
+            name = subjectToEdit.value!!.name
+            abbreviation = subjectToEdit.value!!.abbreviation
+            color = subjectToEdit.value!!.color()
+            didSetValues = true
         }
 
         fun validate(): Boolean {
@@ -112,13 +130,23 @@ fun AddSubjectScreen(navController: NavController) {
                     .fillMaxWidth(), onClick = {
                     if (!validate()) return@Button
                     Subject(
+                        uid = if (subjectToEdit.value != null) subjectToEdit.value!!.uid else 0,
                         name = name,
                         abbreviation = abbreviation,
                         colorValue = color.toArgb()
-                    ).let { viewModel.insertSubject(it) }
+                    ).let {
+                        if (subjectIdToEdit == null)
+                            viewModel.insert(it)
+                        else viewModel.update(it)
+                    }
                     navController.popBackStack()
                 }) {
-                    Text(stringResource(R.string.add_subject_button))
+                    Text(
+                        stringResource(
+                            if (subjectIdToEdit == null) R.string.add_subject_button
+                            else R.string.general_save
+                        )
+                    )
                 }
             }
         }
@@ -156,15 +184,36 @@ private fun ColorPickerDialog(
             }) { Text(stringResource(android.R.string.ok)) }
         },
         dismissButton = {
-            TextButton(onClick = { onCloseRequest(null) }) { Text(stringResource(android.R.string.cancel)) }
+            TextButton(onClick = { onCloseRequest(null) }) {
+                Text(stringResource(android.R.string.cancel))
+            }
         })
 }
 
 class AddSubjectScreenViewModel(application: Application) : AndroidViewModel(application) {
-    fun insertSubject(subject: Subject) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private val _subjectToEdit: MutableStateFlow<Subject?> = MutableStateFlow(null)
+    val subject: StateFlow<Subject?> = _subjectToEdit
+
+    fun setSubjectId(subjectId: Int) {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+                .findById(subjectId).collect {
+                    _subjectToEdit.value = it
+                }
+        }
+    }
+
+    fun insert(subject: Subject) {
+        viewModelScope.launch {
             AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
                 .insert(subject)
+        }
+    }
+
+    fun update(subject: Subject) {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+                .update(subject)
         }
     }
 }

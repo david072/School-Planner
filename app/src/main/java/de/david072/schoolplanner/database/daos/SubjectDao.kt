@@ -1,9 +1,6 @@
 package de.david072.schoolplanner.database.daos
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.Query
+import androidx.room.*
 import de.david072.schoolplanner.database.entities.Subject
 import kotlinx.coroutines.flow.Flow
 
@@ -16,8 +13,11 @@ interface SubjectDao {
     fun findById(id: Int): Flow<Subject>
 
     @Insert
-    fun insert(subject: Subject)
+    suspend fun insert(subject: Subject)
+
+    @Update
+    suspend fun update(subject: Subject)
 
     @Delete
-    fun delete(subject: Subject)
+    suspend fun delete(subject: Subject)
 }

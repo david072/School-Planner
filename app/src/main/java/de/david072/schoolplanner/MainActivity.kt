@@ -40,6 +40,12 @@ class MainActivity : AppCompatActivity() {
                     composable("settings") { SettingsScreen(navController) }
                     composable("settings/edit_subjects") { EditSubjectsScreen(navController) }
                     composable("settings/add_subject") { AddSubjectScreen(navController) }
+                    composable(
+                        "settings/edit_subject/{subjectId}",
+                        arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
+                    ) {
+                        AddSubjectScreen(navController, it.arguments!!.getInt("subjectId"))
+                    }
 
                     dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
                 }

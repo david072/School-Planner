@@ -18,7 +18,7 @@
     <string name="delete_dialog_message">Möchtest du diese Aufgabe wirklich löschen?</string>
     <string name="delete_dialog_positive_button">Löschen</string>
     <string name="delete_dialog_negative_button">Abbrechen</string>
-    <string name="edit_task_button">Speichern</string>
+    <string name="general_save">Speichern</string>
     <string name="edit_subjects_setting_title">Fächer bearbeiten</string>
     <string name="add_subject_name_label">Name</string>
     <string name="add_subject_abbreviation_label">Abkürzung</string>

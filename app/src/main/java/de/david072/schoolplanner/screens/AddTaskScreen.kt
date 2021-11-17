@@ -230,7 +230,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         Text(
                             if (taskToEdit.value == null) stringResource(R.string.add_task_button)
                             else stringResource(
-                                R.string.edit_task_button
+                                R.string.general_save
                             )
                         )
                     }
