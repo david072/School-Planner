@@ -16,7 +16,7 @@
     <string name="pick_reminder_dialog_title">Pick reminder</string>
     <string name="delete_dialog_title">Delete task?</string>
     <string name="delete_dialog_message">Do you really want to delete this task?</string>
-    <string name="delete_dialog_positive_button">Delete</string>
+    <string name="general_delete">Delete</string>
     <string name="delete_dialog_negative_button">Cancel</string>
     <string name="general_save">Save</string>
     <string name="edit_subjects_setting_title">Edit Subjects</string>
@@ -25,4 +25,9 @@
     <string name="add_subject_color_label">Color</string>
     <string name="add_subject_button">Add Subject</string>
     <string name="add_subject_dialog_title">Pick a color</string>
+    <string name="move_tasks_positive_button">Move</string>
+    <string name="move_tasks_title">Move Tasks</string>
+    <string name="move_tasks_description_singular">1 task refers to this subject. You need to move it to another subject first before you can continue.</string>
+    <string name="move_tasks_description_plural">%count% tasks refer to this subject. You need to move them to another subject first before you can continue.</string>
+    <string name="move_tasks_text_field_start_text">Select the target subject</string>
 </resources>

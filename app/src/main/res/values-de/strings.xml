@@ -16,7 +16,7 @@
     <string name="pick_reminder_dialog_title">Erinnerungsdatum auswählen</string>
     <string name="delete_dialog_title">Aufgabe löschen?</string>
     <string name="delete_dialog_message">Möchtest du diese Aufgabe wirklich löschen?</string>
-    <string name="delete_dialog_positive_button">Löschen</string>
+    <string name="general_delete">Löschen</string>
     <string name="delete_dialog_negative_button">Abbrechen</string>
     <string name="general_save">Speichern</string>
     <string name="edit_subjects_setting_title">Fächer bearbeiten</string>
@@ -25,4 +25,9 @@
     <string name="add_subject_color_label">Farbe</string>
     <string name="add_subject_button">Fach hinzufügen</string>
     <string name="add_subject_dialog_title">Wähle eine Farbe aus</string>
+    <string name="move_tasks_positive_button">Verschieben</string>
+    <string name="move_tasks_title">Aufgaben verschieben</string>
+    <string name="move_tasks_description_singular">Eine Aufgabe ist mit diesem Fach verknüpft. Du musst ihn erst zu einem anderen Fach verschieben.</string>
+    <string name="move_tasks_description_plural">%count% Aufgaben sind mit diesem Fach verknüpft. Du musst sie erst zu einem anderen Fach verschieben.</string>
+    <string name="move_tasks_text_field_start_text">Wähle das Ziel-Fach aus</string>
 </resources>

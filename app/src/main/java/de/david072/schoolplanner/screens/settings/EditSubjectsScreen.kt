@@ -2,30 +2,36 @@ package de.david072.schoolplanner.screens.settings
 
 import android.app.Application
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
+import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -45,7 +51,7 @@ fun EditSubjectsScreen(navController: NavController) {
         LazyColumn(modifier = Modifier.padding(all = 10.dp)) {
             subjects.value?.let {
                 items(it.size) { index ->
-                    SubjectListItem(navController, it[index])
+                    SubjectListItem(navController, viewModel, it[index])
                 }
             }
         }
@@ -53,7 +59,11 @@ fun EditSubjectsScreen(navController: NavController) {
 }
 
 @Composable
-private fun SubjectListItem(navController: NavController, subject: Subject) {
+private fun SubjectListItem(
+    navController: NavController,
+    viewModel: EditSubjectsScreenViewModel,
+    subject: Subject
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -61,10 +71,27 @@ private fun SubjectListItem(navController: NavController, subject: Subject) {
     ) {
         Text(subject.name, modifier = Modifier.padding(start = 10.dp))
         Box(modifier = Modifier.fillMaxWidth()) {
-            IconButton(
-                onClick = { navController.navigate("settings/edit_subject/${subject.uid}") },
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) { Icon(Icons.Outlined.Edit, "") }
+            Row(modifier = Modifier.align(Alignment.CenterEnd)) {
+                val scope = rememberCoroutineScope()
+
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            if (viewModel.canDelete(subject.uid)) {
+                                // Delete subject
+                                println("Deleting subject")
+                                return@launch
+                            }
+
+                            navController.navigate("settings/edit_subjects/move_tasks_and_delete_subject/${subject.uid}")
+                        }
+                    },
+                ) { Icon(Icons.Outlined.Delete, "") }
+
+                IconButton(
+                    onClick = { navController.navigate("settings/edit_subject/${subject.uid}") },
+                ) { Icon(Icons.Outlined.Edit, "") }
+            }
         }
     }
 }
@@ -80,5 +107,191 @@ class EditSubjectsScreenViewModel(application: Application) : AndroidViewModel(a
                     _subjects.value = it
                 }
         }
+    }
+
+    suspend fun canDelete(subjectId: Int): Boolean =
+        AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+            .findBySubject(subjectId).first().isEmpty()
+}
+
+// Used to migrate tasks to another subject. This is navigated to
+// if a subject should be deleted, but tasks refer to it.
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun MoveTasksAndDeleteSubjectDialog(navController: NavController, subjectId: Int) {
+    val viewModel = viewModel<MigrateTasksDialogViewModel>()
+    viewModel.setSubjectId(subjectId)
+
+    val tasks = viewModel.tasks.collectAsState()
+    val subjects = viewModel.subjects.collectAsState()
+
+    var selectedText by remember { mutableStateOf("") }
+    var textFieldIsError by remember { mutableStateOf(false) }
+    var selectedSubjectId by remember { mutableStateOf(-1) }
+    var isExpanded by remember { mutableStateOf(false) }
+    var textFieldSize by remember { mutableStateOf(Size.Zero) }
+
+    AlertDialog(
+        onDismissRequest = { navController.popBackStack() },
+        title = { Text(stringResource(R.string.move_tasks_title)) },
+        text = {
+            Column {
+                val (focusRequester) = FocusRequester.createRefs()
+                val interactionSource = remember { MutableInteractionSource() }
+
+                val tasksSize = tasks.value.size
+
+                Text(stringResource(
+                    if (tasksSize > 1) R.string.move_tasks_description_plural
+                    else R.string.move_tasks_description_singular
+                ).let {
+                    if (tasksSize <= 1) return@let it
+                    it.replace("%count%", tasksSize.toString())
+                })
+                Box(modifier = Modifier.padding(top = 10.dp)) {
+                    OutlinedTextField(
+                        value = if (selectedText.isEmpty()) stringResource(R.string.move_tasks_text_field_start_text) else selectedText,
+                        onValueChange = {
+                            selectedText = it
+                            textFieldIsError = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onGloballyPositioned {
+                                textFieldSize = it.size.toSize()
+                            }
+                            .focusRequester(focusRequester),
+                        readOnly = true,
+                        isError = textFieldIsError
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clickable(
+                                onClick = {
+                                    isExpanded = !isExpanded
+                                    focusRequester.requestFocus()
+                                },
+                                interactionSource = interactionSource,
+                                indication = null
+                            )
+                    )
+                }
+                DropdownMenu(
+                    expanded = isExpanded,
+                    onDismissRequest = { isExpanded = false },
+                    modifier = Modifier.width(with(
+                        LocalDensity.current
+                    ) { textFieldSize.width.toDp() })
+                ) {
+                    subjects.value.forEach {
+                        DropdownMenuItem(onClick = {
+                            selectedText = it.name
+                            selectedSubjectId = it.uid
+                            isExpanded = false
+                        }) { Text(it.name) }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            val scope = rememberCoroutineScope()
+            TextButton(onClick = {
+                if (selectedSubjectId == -1) {
+                    textFieldIsError = true
+                    return@TextButton
+                }
+
+                scope.launch {
+                    viewModel.moveTasksAndDeleteSubject(selectedSubjectId)
+                    navController.popBackStack()
+                }
+            }) {
+                Text(stringResource(R.string.move_tasks_positive_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { navController.popBackStack() }) {
+                Text(stringResource(android.R.string.cancel))
+            }
+        }
+    )
+}
+
+class MigrateTasksDialogViewModel(application: Application) :
+    AndroidViewModel(application) {
+    private val _tasks: MutableStateFlow<List<Task>> = MutableStateFlow(emptyList())
+    val tasks: StateFlow<List<Task>> = _tasks
+
+    private var subjectId: Int = -1
+
+    private val _subjects: MutableStateFlow<List<Subject>> = MutableStateFlow(emptyList())
+    val subjects: StateFlow<List<Subject>> = _subjects
+
+    init {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .findBySubject(subjectId).collect { _tasks.value = it }
+        }
+
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+                .getAll().collect {
+                    val list = ArrayList<Subject>(it)
+                    val iterator = list.iterator()
+                    while (iterator.hasNext()) {
+                        if (iterator.next().uid == subjectId) {
+                            iterator.remove()
+                            break
+                        }
+                    }
+
+                    _subjects.value = list.toList()
+                }
+        }
+    }
+
+    fun setSubjectId(subjectId: Int) {
+        this.subjectId = subjectId
+
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .findBySubject(subjectId).collect { _tasks.value = it }
+        }
+
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+                .getAll().collect {
+                    val list = ArrayList<Subject>(it)
+                    val iterator = list.iterator()
+                    while (iterator.hasNext()) {
+                        if (iterator.next().uid == subjectId) {
+                            iterator.remove()
+                            break
+                        }
+                    }
+
+                    _subjects.value = list.toList()
+                }
+        }
+    }
+
+    suspend fun moveTasksAndDeleteSubject(newSubjectId: Int) {
+        if (subjectId == -1) throw Exception("subjectId was -1")
+
+        // FIXME: Why tf does this work when debugging but not when actually running it???
+        //  Too bad...
+        tasks.value.forEach { task ->
+            task.subjectId = newSubjectId
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .update(task)
+        }
+
+        val subjectDao =
+            AppDatabase.instance((getApplication() as Application).applicationContext)
+                .subjectDao()
+        val subjectToDelete = subjectDao.findById(subjectId).first()
+        subjectDao.delete(subjectToDelete)
     }
 }

@@ -15,6 +15,7 @@ import de.david072.schoolplanner.screens.SubjectSelectorDialog
 import de.david072.schoolplanner.screens.ViewTaskScreen
 import de.david072.schoolplanner.screens.settings.AddSubjectScreen
 import de.david072.schoolplanner.screens.settings.EditSubjectsScreen
+import de.david072.schoolplanner.screens.settings.MoveTasksAndDeleteSubjectDialog
 import de.david072.schoolplanner.screens.settings.SettingsScreen
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 
@@ -26,6 +27,7 @@ class MainActivity : AppCompatActivity() {
                 val navController = rememberNavController()
 
                 val taskIdArgument = navArgument("taskId") { type = NavType.IntType }
+                val subjectIdArgument = navArgument("subjectId") { type = NavType.IntType }
 
                 NavHost(navController = navController, startDestination = "home_screen") {
                     composable("home_screen") { HomeScreen(navController) }
@@ -39,13 +41,21 @@ class MainActivity : AppCompatActivity() {
 
                     composable("settings") { SettingsScreen(navController) }
                     composable("settings/edit_subjects") { EditSubjectsScreen(navController) }
+                    dialog(
+                        "settings/edit_subjects/move_tasks_and_delete_subject/{subjectId}",
+                        arguments = listOf(subjectIdArgument)
+                    ) {
+                        MoveTasksAndDeleteSubjectDialog(
+                            navController,
+                            it.arguments!!.getInt("subjectId")
+                        )
+                    }
+
                     composable("settings/add_subject") { AddSubjectScreen(navController) }
                     composable(
                         "settings/edit_subject/{subjectId}",
-                        arguments = listOf(navArgument("subjectId") { type = NavType.IntType })
-                    ) {
-                        AddSubjectScreen(navController, it.arguments!!.getInt("subjectId"))
-                    }
+                        arguments = listOf(subjectIdArgument)
+                    ) { AddSubjectScreen(navController, it.arguments!!.getInt("subjectId")) }
 
                     dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
                 }

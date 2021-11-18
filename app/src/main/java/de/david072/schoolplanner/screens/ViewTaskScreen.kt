@@ -49,7 +49,7 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                 MaterialAlertDialogBuilder(context)
                     .setTitle(context.resources.getString(R.string.delete_dialog_title))
                     .setMessage(context.resources.getString(R.string.delete_dialog_message))
-                    .setPositiveButton(context.resources.getString(R.string.delete_dialog_positive_button)) { dialog, _ ->
+                    .setPositiveButton(context.resources.getString(R.string.general_delete)) { dialog, _ ->
                         viewModel.deleteTask()
                         dialog.dismiss()
                         navController?.popBackStack()

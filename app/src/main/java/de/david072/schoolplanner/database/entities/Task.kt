@@ -11,6 +11,6 @@ data class Task(
     @ColumnInfo val title: String,
     @ColumnInfo(name = "due_date") val dueDate: LocalDate,
     @ColumnInfo val reminder: LocalDate,
-    @ColumnInfo(name = "subject_id") val subjectId: Int,
+    @ColumnInfo(name = "subject_id") var subjectId: Int,
     @ColumnInfo val description: String?
 )
