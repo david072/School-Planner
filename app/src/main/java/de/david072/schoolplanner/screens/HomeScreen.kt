@@ -2,23 +2,14 @@ package de.david072.schoolplanner.screens
 
 import android.app.Application
 import android.content.res.Configuration
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -33,6 +24,9 @@ import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 @Composable
 fun HomeScreen(navController: NavController?) {
@@ -52,10 +46,12 @@ fun HomeScreen(navController: NavController?) {
     }) {
         val viewModel = viewModel<HomeScreenViewModel>()
         Box(modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)) {
-            val subjects = viewModel.subjects.collectAsState()
+            val dates = viewModel.dates.collectAsState()
             LazyColumn {
-                items(subjects.value.size) { index ->
-                    SubjectListItem(subjects.value[index], viewModel, navController)
+                items(dates.value.keys.size) { index ->
+                    // The key represents the date (as an epoch day)
+                    val key = dates.value.keys.elementAt(index)
+                    DateListItem(key, dates.value[key])
                 }
             }
         }
@@ -63,6 +59,28 @@ fun HomeScreen(navController: NavController?) {
 }
 
 @Composable
+fun DateListItem(date: Long, subjectGroups: ArrayList<SubjectGroup>?) {
+    Column(modifier = Modifier.padding(bottom = 30.dp)) {
+        Text(
+            LocalDate.ofEpochDay(date).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+            style = MaterialTheme.typography.h5
+        )
+        FlowColumn {
+            subjectGroups?.let {
+                repeat(it.size) { index ->
+                    Text("Subject: ${it[index].subject.name}")
+                    FlowColumn {
+                        repeat(it[index].tasks.size) { taskIndex ->
+                            Text("Task: ${it[index].tasks[taskIndex].title}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/*@Composable
 fun SubjectListItem(
     subject: Subject,
     viewModel: HomeScreenViewModel,
@@ -127,33 +145,54 @@ fun TaskListItem(task: Task, navController: NavController?) {
         }) {
         Text(text = task.title)
     }
-}
+}*/
 
 class HomeScreenViewModel(application: Application) : AndroidViewModel(application) {
-    private val _subjects: MutableStateFlow<List<Subject>> = MutableStateFlow(emptyList())
-    val subjects: StateFlow<List<Subject>> = _subjects
-
-    private val tasks = mutableMapOf<Int, Flow<List<Task>>>().withDefault { emptyFlow() }
+    private val _dates: MutableStateFlow<MutableMap<Long, ArrayList<SubjectGroup>>> =
+        MutableStateFlow(mutableMapOf())
+    val dates: StateFlow<MutableMap<Long, ArrayList<SubjectGroup>>> = _dates
 
     init {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .getAll().collect {
-                    _subjects.value = it
-                    it.forEach { subject -> addTasksForSubject(subject.uid) }
+            val appDatabase =
+                AppDatabase.instance((getApplication() as Application).applicationContext)
+            appDatabase.taskDao().getOrderedByDueDate().collect {
+                // Temporary variable that is emitted into the flow _dates later.
+                // This is necessary, since otherwise the state won't update above.
+                val generatedMap: MutableMap<Long, ArrayList<SubjectGroup>> = mutableMapOf()
+                it.forEach { task ->
+                    val epochDay = task.dueDate.toEpochDay()
+                    if (generatedMap[epochDay] == null) {
+                        val subject = appDatabase.subjectDao().findById(task.subjectId).first()
+                        generatedMap[epochDay] =
+                            arrayListOf(SubjectGroup(subject, arrayListOf(task)))
+                        return@forEach
+                    }
+
+                    var didAddTask = false
+                    run tryInsertTask@{
+                        generatedMap[epochDay]!!.forEach subjectGroupLoop@{ subjectGroup ->
+                            if (subjectGroup.subject.uid != task.subjectId) return@subjectGroupLoop
+                            subjectGroup.tasks.add(task)
+                            didAddTask = true
+                            // Break out of loop, since we inserted the task
+                            return@tryInsertTask
+                        }
+                    }
+
+                    if (!didAddTask) {
+                        val subject = appDatabase.subjectDao().findById(task.subjectId).first()
+                        generatedMap[epochDay]!!.add(SubjectGroup(subject, arrayListOf(task)))
+                    }
                 }
+                _dates.emit(generatedMap)
+                println(_dates)
+            }
         }
     }
-
-    private fun addTasksForSubject(subjectId: Int) {
-        if (tasks[subjectId] != null) return
-        tasks[subjectId] =
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .findBySubject(subjectId)
-    }
-
-    fun getTasks(subjectId: Int) = tasks[subjectId]!!
 }
+
+data class SubjectGroup(val subject: Subject, val tasks: ArrayList<Task>)
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
