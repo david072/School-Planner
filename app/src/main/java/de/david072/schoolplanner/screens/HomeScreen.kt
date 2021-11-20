@@ -64,7 +64,7 @@ fun HomeScreen(navController: NavController?) {
                 items(dates.value.keys.size) { index ->
                     // The key represents the date (as an epoch day)
                     val key = dates.value.keys.elementAt(index)
-                    DateListItem(navController, key, dates.value[key])
+                    DateListItem(navController, viewModel, key, dates.value[key])
                 }
             }
         }
@@ -74,6 +74,7 @@ fun HomeScreen(navController: NavController?) {
 @Composable
 fun DateListItem(
     navController: NavController?,
+    viewModel: HomeScreenViewModel,
     date: Long,
     subjectGroups: ArrayList<SubjectGroup>?
 ) {
@@ -120,6 +121,7 @@ fun DateListItem(
                 repeat(it.size) { index ->
                     SubjectListItem(
                         navController,
+                        viewModel,
                         it[index],
                         index != 0, // as long as it's not the first one
                         index != it.size - 1, // as long as it's not the last one
@@ -134,6 +136,7 @@ fun DateListItem(
 @Composable
 fun SubjectListItem(
     navController: NavController?,
+    viewModel: HomeScreenViewModel,
     subjectGroup: SubjectGroup,
     hasItemAbove: Boolean,
     hasItemBelow: Boolean,
@@ -171,16 +174,37 @@ fun SubjectListItem(
         if (isExpanded) {
             Text(
                 subjectGroup.subject.name,
-                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
             )
             FlowColumn(modifier = Modifier.padding(top = 5.dp), mainAxisSpacing = 2.dp) {
                 repeat(subjectGroup.tasks.size) { index ->
-                    val task = subjectGroup.tasks[index]
-                    Text(task.title, modifier = Modifier.clickable {
-                        navController?.navigate("view_task/${task.uid}")
-                    })
+                    TaskListItem(subjectGroup.tasks[index], navController, viewModel)
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun TaskListItem(task: Task, navController: NavController?, viewModel: HomeScreenViewModel) {
+    var completed by remember { mutableStateOf(task.completed) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.height(IntrinsicSize.Min)
+    ) {
+        Checkbox(checked = completed, onCheckedChange = {
+            viewModel.setCompleted(task, it)
+            completed = it
+        })
+
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .clickable {
+                    navController?.navigate("view_task/${task.uid}")
+                }, contentAlignment = Alignment.CenterStart
+        ) {
+            Text(task.title)
         }
     }
 }
@@ -224,8 +248,15 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
                 _dates.emit(generatedMap)
-                println(_dates)
             }
+        }
+    }
+
+    fun setCompleted(task: Task, completed: Boolean) {
+        viewModelScope.launch {
+            task.completed = completed
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .update(task)
         }
     }
 }

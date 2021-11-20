@@ -56,7 +56,6 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                     }
                     .setNegativeButton(context.resources.getString(R.string.delete_dialog_negative_button)) { dialog, _ -> dialog.cancel() }
                     .show()
-
             }) {
                 Icon(Icons.Outlined.Delete, "")
             }

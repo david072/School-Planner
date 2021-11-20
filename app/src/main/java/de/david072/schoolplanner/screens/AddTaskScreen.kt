@@ -216,7 +216,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                                 dueDate = dueDate!!,
                                 reminder = reminderStartDate!!,
                                 subjectId = subjectId!!.value!!,
-                                description = description
+                                description = description,
+                                completed = if (taskToEdit.value != null) taskToEdit.value!!.completed else false
                             ).let {
                                 if (taskToEdit.value != null) viewModel.update(it)
                                 else viewModel.insert(it)
