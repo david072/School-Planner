@@ -35,6 +35,7 @@ import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -162,8 +163,8 @@ fun SubjectListItem(
                 )
             )
             .background(
-                if (isSystemInDarkTheme()) Color(35, 35, 35)
-                else Color(240, 240, 240)
+                if (isSystemInDarkTheme()) AppColors.ContainerDark
+                else AppColors.ContainerLight
             )
             .run {
                 // Padding

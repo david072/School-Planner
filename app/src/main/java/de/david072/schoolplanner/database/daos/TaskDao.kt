@@ -19,7 +19,7 @@ interface TaskDao {
     fun getOrderedByDueDate(): Flow<List<Task>>
 
     @Insert
-    suspend fun insert(task: Task)
+    suspend fun insertAll(vararg tasks: Task)
 
     @Update
     suspend fun update(task: Task)

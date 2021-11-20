@@ -4,9 +4,16 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Parcel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.School
@@ -14,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -34,6 +42,7 @@ import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
+import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +64,13 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit)
     val taskToEdit = viewModel.taskToEdit.collectAsState()
 
-    Scaffold(topBar = { AppTopAppBar(navController, true) }) {
+    Scaffold(topBar = {
+        AppTopAppBar(navController, true, actions = {
+            IconButton(onClick = { viewModel.tasks.add(TaskData()) }) {
+                Icon(Icons.Filled.Add, "")
+            }
+        })
+    }) {
         Box(modifier = Modifier.padding(PaddingValues(all = 10.dp))) {
             var didSetValues by remember { mutableStateOf(false) }
 
@@ -80,6 +95,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 ?.observeAsState()
             var subjectIsError by remember { mutableStateOf(false) }
 
+            val scrollState = rememberScrollState()
+
             // Set all of the values if we're editing. Only do this the first time though
             // as we need to allow that changes are made to this for editing
             if (taskToEdit.value != null && !didSetValues) {
@@ -95,9 +112,12 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             fun validate(): Boolean {
                 var valid = true
 
-                if (title.trim().isEmpty()) {
-                    titleIsError = true
-                    valid = false
+                // TODO: Add validation for each task item
+                if (taskIdToEdit != null) {
+                    if (title.trim().isEmpty()) {
+                        titleIsError = true
+                        valid = false
+                    }
                 }
                 if (dueDate == null) {
                     dueDateIsError = true
@@ -115,20 +135,26 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 return valid
             }
 
-            Column(modifier = Modifier.fillMaxHeight()) {
-                TextField(
-                    value = title,
-                    onValueChange = {
-                        title = it
-                        titleIsError = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 15.dp),
-                    maxLines = 1,
-                    label = { Text(stringResource(R.string.add_task_title_label)) },
-                    isError = titleIsError
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .verticalScroll(scrollState)
+            ) {
+                if (taskIdToEdit != null) {
+                    TextField(
+                        value = title,
+                        onValueChange = {
+                            title = it
+                            titleIsError = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 15.dp),
+                        maxLines = 1,
+                        label = { Text(stringResource(R.string.add_task_title_label)) },
+                        isError = titleIsError
+                    )
+                }
 
                 fun evalReminderStartDate() {
                     if (reminderIndex == -2) return
@@ -197,32 +223,60 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     isError = subjectIsError
                 ) { navController?.navigate("subject_select_dialog") }
 
-                TextField(
-                    value = description,
-                    onValueChange = { description = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 15.dp),
-                    label = { Text(stringResource(R.string.add_task_description_label)) },
-                )
+                if (taskIdToEdit != null) {
+                    TextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 15.dp),
+                        label = { Text(stringResource(R.string.add_task_description_label)) },
+                    )
+                }
+
+                if (taskIdToEdit == null) {
+                    Box(modifier = Modifier.padding(top = 20.dp)) // Spacer
+                    repeat(viewModel.tasks.size) { index ->
+                        TaskListItem(
+                            viewModel.tasks[index],
+                            viewModel,
+                            index != 0, // as long as it's not the first one
+                            index != viewModel.tasks.size - 1 // as long as it's not the last one
+                        )
+                    }
+                }
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Button(
                         onClick = {
                             if (!validate()) return@Button
-                            Task(
-                                uid = if (taskToEdit.value != null) taskToEdit.value!!.uid else 0,
-                                title = title,
-                                dueDate = dueDate!!,
-                                reminder = reminderStartDate!!,
-                                subjectId = subjectId!!.value!!,
-                                description = description,
-                                completed = if (taskToEdit.value != null) taskToEdit.value!!.completed else false
-                            ).let {
-                                if (taskToEdit.value != null) viewModel.update(it)
-                                else viewModel.insert(it)
+                            if (taskToEdit.value != null) {
+                                Task(
+                                    uid = taskToEdit.value!!.uid,
+                                    title = title,
+                                    dueDate = dueDate!!,
+                                    reminder = reminderStartDate!!,
+                                    subjectId = subjectId!!.value!!,
+                                    description = description,
+                                    completed = taskToEdit.value!!.completed
+                                ).let { viewModel.update(it) }
+                            } else {
+                                val tasks = arrayListOf<Task>()
+                                viewModel.tasks.forEach {
+                                    tasks.add(
+                                        Task(
+                                            title = it.title,
+                                            dueDate = dueDate!!,
+                                            reminder = reminderStartDate!!,
+                                            subjectId = subjectId!!.value!!,
+                                            description = it.description,
+                                            completed = false
+                                        )
+                                    )
+                                }
+                                viewModel.insertAll(tasks)
                             }
-                            navController.popBackStack()
+                            navController?.popBackStack()
                         },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -241,9 +295,73 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     }
 }
 
+@Composable
+private fun TaskListItem(
+    taskData: TaskData,
+    viewModel: AddTaskViewModel,
+    hasItemAbove: Boolean = false,
+    hasItemBelow: Boolean = false
+) {
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+
+    val topCornerRadius = (if (hasItemAbove) 0 else 4).dp
+    val bottomCornerRadius = (if (hasItemBelow) 0 else 4).dp
+
+    Column(
+        modifier = Modifier
+            .padding(bottom = 2.dp)
+            .clip(
+                RoundedCornerShape(
+                    topStart = topCornerRadius,
+                    topEnd = topCornerRadius,
+                    bottomStart = bottomCornerRadius,
+                    bottomEnd = bottomCornerRadius
+                )
+            )
+            .background(
+                if (isSystemInDarkTheme()) AppColors.ContainerDark
+                else AppColors.ContainerLight
+            )
+            .padding(start = 10.dp, bottom = 10.dp)
+    ) {
+        IconButton(
+            onClick = { viewModel.tasks.remove(taskData) },
+            enabled = viewModel.tasks.size > 1, // => The user can't have zero TaskListItems
+            modifier = Modifier.align(Alignment.End)
+        ) { Icon(Icons.Filled.Remove, "") }
+        TextField(
+            value = title,
+            onValueChange = {
+                title = it
+                taskData.title = it
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp, end = 10.dp),
+            maxLines = 1,
+            label = { Text(stringResource(R.string.add_task_title_label)) },
+        )
+
+        TextField(
+            value = description,
+            onValueChange = {
+                description = it
+                taskData.description = it
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = 10.dp),
+            label = { Text(stringResource(R.string.add_task_description_label)) },
+        )
+    }
+}
+
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
     val taskToEdit: StateFlow<Task?> = _taskToEdit
+
+    val tasks = mutableStateListOf(TaskData())
 
     fun setTaskId(taskId: Int) {
         viewModelScope.launch {
@@ -252,10 +370,10 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun insert(task: Task) {
+    fun insertAll(task: List<Task>) {
         viewModelScope.launch(Dispatchers.IO) {
             AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
-                .insert(task)
+                .insertAll(*task.toTypedArray())
         }
     }
 
@@ -266,6 +384,11 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 }
+
+data class TaskData(
+    var title: String = "",
+    var description: String = ""
+)
 
 private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
     MaterialDatePicker.Builder
