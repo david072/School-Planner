@@ -3,11 +3,12 @@ package de.david072.schoolplanner.screens
 import android.app.Application
 import android.content.res.Configuration
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,8 +84,8 @@ fun DateListItem(
     val arrowAngle by animateFloatAsState(
         targetValue = if (isExpanded) 360f else 180f,
         animationSpec = tween(
-            durationMillis = 500,
-            easing = FastOutSlowInEasing
+            durationMillis = 300,
+            easing = LinearOutSlowInEasing
         )
     )
 
@@ -160,7 +161,10 @@ fun SubjectListItem(
                     bottomEnd = bottomCornerRadius
                 )
             )
-            .background(Color(35, 35, 35))
+            .background(
+                if (isSystemInDarkTheme()) Color(35, 35, 35)
+                else Color(240, 240, 240)
+            )
             .run {
                 // Padding
                 return@run if (isExpanded) padding(
