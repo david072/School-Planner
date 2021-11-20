@@ -2,14 +2,27 @@ package de.david072.schoolplanner.screens
 
 import android.app.Application
 import android.content.res.Configuration
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
@@ -51,7 +64,7 @@ fun HomeScreen(navController: NavController?) {
                 items(dates.value.keys.size) { index ->
                     // The key represents the date (as an epoch day)
                     val key = dates.value.keys.elementAt(index)
-                    DateListItem(key, dates.value[key])
+                    DateListItem(navController, key, dates.value[key])
                 }
             }
         }
@@ -59,34 +72,11 @@ fun HomeScreen(navController: NavController?) {
 }
 
 @Composable
-fun DateListItem(date: Long, subjectGroups: ArrayList<SubjectGroup>?) {
-    Column(modifier = Modifier.padding(bottom = 30.dp)) {
-        Text(
-            LocalDate.ofEpochDay(date).format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
-            style = MaterialTheme.typography.h5
-        )
-        FlowColumn {
-            subjectGroups?.let {
-                repeat(it.size) { index ->
-                    Text("Subject: ${it[index].subject.name}")
-                    FlowColumn {
-                        repeat(it[index].tasks.size) { taskIndex ->
-                            Text("Task: ${it[index].tasks[taskIndex].title}")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/*@Composable
-fun SubjectListItem(
-    subject: Subject,
-    viewModel: HomeScreenViewModel,
-    navController: NavController?
+fun DateListItem(
+    navController: NavController?,
+    date: Long,
+    subjectGroups: ArrayList<SubjectGroup>?
 ) {
-    val tasks = viewModel.getTasks(subject.uid).collectAsState(initial = emptyList())
     var isExpanded by remember { mutableStateOf(true) }
 
     val arrowAngle by animateFloatAsState(
@@ -97,38 +87,44 @@ fun SubjectListItem(
         )
     )
 
-    Column(
-        modifier = Modifier
+    Column(modifier = Modifier.padding(top = 10.dp, bottom = 20.dp)) {
+        Box(modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 10.dp)
-    ) {
-        Row(modifier = Modifier
-            .clickable { isExpanded = !isExpanded }
-            .fillMaxWidth()) {
-            Text(text = subject.name, style = MaterialTheme.typography.h6)
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = "",
-                    tint = Color.Gray,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .rotate(arrowAngle)
+            .clickable { isExpanded = !isExpanded }) {
+            Row {
+                Text(
+                    LocalDate.ofEpochDay(date)
+                        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+                    style = MaterialTheme.typography.h6
                 )
+
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = "",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .rotate(arrowAngle)
+                    )
+                }
             }
         }
-
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 10.dp, end = 10.dp)
+                .padding(top = 10.dp)
                 .animateContentSize()
         ) {
-            if (isExpanded) {
-                FlowColumn {
-                    repeat(tasks.value.size) { index ->
-                        TaskListItem(task = tasks.value[index], navController)
-                    }
+            subjectGroups?.let {
+                repeat(it.size) { index ->
+                    SubjectListItem(
+                        navController,
+                        it[index],
+                        index != 0, // as long as it's not the first one
+                        index != it.size - 1, // as long as it's not the last one
+                        isExpanded
+                    )
                 }
             }
         }
@@ -136,16 +132,58 @@ fun SubjectListItem(
 }
 
 @Composable
-fun TaskListItem(task: Task, navController: NavController?) {
-    Box(modifier = Modifier
-        .padding(top = 5.dp)
-        .fillMaxWidth()
-        .clickable {
-            navController?.navigate("view_task/${task.uid}")
-        }) {
-        Text(text = task.title)
+fun SubjectListItem(
+    navController: NavController?,
+    subjectGroup: SubjectGroup,
+    hasItemAbove: Boolean,
+    hasItemBelow: Boolean,
+    isExpanded: Boolean
+) {
+    val topCornerRadius = (if (hasItemAbove) 0 else 10).dp
+    val bottomCornerRadius = (if (hasItemBelow) 0 else 10).dp
+    Column(
+        modifier = Modifier
+            // Margin
+            .padding(
+                bottom = (if (hasItemBelow) 1 else 0).dp,
+                top = (if (hasItemAbove) 1 else 0).dp
+            )
+            .fillMaxWidth()
+            .clip(
+                RoundedCornerShape(
+                    topStart = topCornerRadius,
+                    topEnd = topCornerRadius,
+                    bottomStart = bottomCornerRadius,
+                    bottomEnd = bottomCornerRadius
+                )
+            )
+            .background(Color(35, 35, 35))
+            .run {
+                // Padding
+                return@run if (isExpanded) padding(
+                    start = 10.dp,
+                    end = 10.dp,
+                    bottom = 10.dp,
+                    top = 7.dp
+                ) else this
+            }
+    ) {
+        if (isExpanded) {
+            Text(
+                subjectGroup.subject.name,
+                style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.SemiBold)
+            )
+            FlowColumn(modifier = Modifier.padding(top = 5.dp), mainAxisSpacing = 2.dp) {
+                repeat(subjectGroup.tasks.size) { index ->
+                    val task = subjectGroup.tasks[index]
+                    Text(task.title, modifier = Modifier.clickable {
+                        navController?.navigate("view_task/${task.uid}")
+                    })
+                }
+            }
+        }
     }
-}*/
+}
 
 class HomeScreenViewModel(application: Application) : AndroidViewModel(application) {
     private val _dates: MutableStateFlow<MutableMap<Long, ArrayList<SubjectGroup>>> =
