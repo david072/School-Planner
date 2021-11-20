@@ -1,14 +1,11 @@
 package de.david072.schoolplanner.screens
 
 import android.app.Application
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
@@ -27,6 +24,7 @@ import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
@@ -42,6 +40,14 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
 
     val task = viewModel.task.collectAsState()
     val subject = viewModel.subject.collectAsState()
+
+    var isCompleted by remember { mutableStateOf(task.value?.completed ?: false) }
+    var didSetCompleted by remember { mutableStateOf(false) }
+
+    if (!didSetCompleted && task.value != null) {
+        isCompleted = task.value!!.completed
+        didSetCompleted = true
+    }
 
     Scaffold(topBar = {
         AppTopAppBar(navController, true, actions = {
@@ -66,6 +72,20 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
                 Icon(Icons.Outlined.Edit, "")
             }
         })
+    }, floatingActionButton = {
+        // TODO: Animate the size change and icon?
+        ExtendedFloatingActionButton(
+            onClick = {
+                if (task.value != null) {
+                    viewModel.setCompleted(!isCompleted)
+                    isCompleted = !isCompleted
+                }
+            },
+            text = { Text(if (isCompleted) "Mark incomplete" else "Complete") },
+            backgroundColor = MaterialTheme.colors.primary,
+            icon = {
+                Icon(Icons.Outlined.Done, "")
+            })
     }) {
         Column(modifier = Modifier.padding(all = 10.dp)) {
             // TODO: Prevent the text field from being selectable
@@ -134,11 +154,24 @@ class ViewTaskScreenViewModel(application: Application) :
             appDatabase.taskDao().findById(taskId).collect { task: Task? ->
                 _task.value = task
                 // Task could be null if it has been deleted (deleteTask())
-                if (task == null) return@collect
+                if (task == null) {
+                    cancel()
+                    return@collect
+                }
                 appDatabase.subjectDao().findById(task.subjectId).collect { subject ->
                     _subject.value = subject
                 }
             }
+        }
+    }
+
+    fun setCompleted(completed: Boolean) {
+        if (task.value == null) return
+
+        viewModelScope.launch {
+            val task = task.value.apply { this!!.completed = completed }!!
+            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
+                .update(task)
         }
     }
 
