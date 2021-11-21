@@ -30,4 +30,5 @@
     <string name="move_tasks_description_singular">Eine Aufgabe ist mit diesem Fach verknüpft. Du musst ihn erst zu einem anderen Fach verschieben.</string>
     <string name="move_tasks_description_plural">%count% Aufgaben sind mit diesem Fach verknüpft. Du musst sie erst zu einem anderen Fach verschieben.</string>
     <string name="move_tasks_text_field_start_text">Wähle das Ziel-Fach aus</string>
+    <string name="add_task_additional_properties">Weitere Eigenschaften</string>
 </resources>

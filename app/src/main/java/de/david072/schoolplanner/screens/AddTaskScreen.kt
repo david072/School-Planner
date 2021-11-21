@@ -4,17 +4,19 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Parcel
-import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.runtime.*
@@ -22,6 +24,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -82,7 +86,6 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             var dueDateIsError by remember { mutableStateOf(false) }
             var reminderIndex by remember { mutableStateOf(-2) }
             var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
-            var reminderIsError by remember { mutableStateOf(false) }
 
             val subjectId = navController?.currentBackStackEntry
                 ?.savedStateHandle
@@ -123,10 +126,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     dueDateIsError = true
                     valid = false
                 }
-                if (reminderIndex == -2) {
-                    reminderIsError = true
-                    valid = false
-                }
+                if (reminderIndex == -2) valid = false
                 if (subjectId?.value == null) {
                     subjectIsError = true
                     valid = false
@@ -156,16 +156,16 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     )
                 }
 
-                fun evalReminderStartDate() {
-                    if (reminderIndex == -2) return
+                fun evalReminderStartDate(index: Int = reminderIndex): LocalDate? {
+                    if (index == -2) return null
 
-                    if (reminderIndex == 0) {
+                    if (index == 0) {
                         reminderStartDate = dueDate
-                        return
+                        return dueDate
                     }
 
-                    val daysDifference = when (reminderIndex) {
-                        in 0..4 -> reminderIndex
+                    val daysDifference = when (index) {
+                        in 0..4 -> index
                         5 -> 7
                         6 -> 14
                         else -> -1
@@ -175,7 +175,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         if (dueDate != null) dueDate!!.minusDays(daysDifference) else LocalDate.now()
                             .minusDays(daysDifference)
 
-                    reminderIsError = false
+                    return reminderStartDate
                 }
 
                 HorizontalButton(
@@ -193,17 +193,9 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 }
                 HorizontalSpacer()
 
-                HorizontalButton(
-                    text = if (reminderStartDate == null || reminderIndex == -2) {
-                        stringResource(R.string.add_task_reminder_selector)
-                    } else stringArrayResource(R.array.reminder_choices)[reminderIndex],
-                    icon = Icons.Outlined.Notifications,
-                    isError = reminderIsError,
-                ) {
-                    pickReminder(context) {
-                        reminderIndex = it
-                        evalReminderStartDate()
-                    }
+                ReminderPicker(dueDate) { index, startDate ->
+                    reminderIndex = index
+                    reminderStartDate = startDate
                 }
                 HorizontalSpacer()
 
@@ -239,6 +231,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     repeat(viewModel.tasks.size) { index ->
                         TaskListItem(
                             viewModel.tasks[index],
+                            dueDate,
                             viewModel,
                             index != 0, // as long as it's not the first one
                             index != viewModel.tasks.size - 1 // as long as it's not the last one
@@ -263,11 +256,18 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                             } else {
                                 val tasks = arrayListOf<Task>()
                                 viewModel.tasks.forEach {
+                                    // Override reminder if a different one has been selected
+                                    val reminder =
+                                        if (it.reminderIndex == -2 ||
+                                            it.reminderIndex == reminderIndex
+                                        ) reminderStartDate!!
+                                        else evalReminderStartDate(it.reminderIndex)!!
+
                                     tasks.add(
                                         Task(
                                             title = it.title,
                                             dueDate = dueDate!!,
-                                            reminder = reminderStartDate!!,
+                                            reminder = reminder,
                                             subjectId = subjectId!!.value!!,
                                             description = it.description,
                                             completed = false
@@ -298,12 +298,22 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
 @Composable
 private fun TaskListItem(
     taskData: TaskData,
+    dueDate: LocalDate?,
     viewModel: AddTaskViewModel,
     hasItemAbove: Boolean = false,
     hasItemBelow: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+
+    var isExpanded by remember { mutableStateOf(false) }
+    val arrowAngle by animateFloatAsState(
+        targetValue = if (isExpanded) 360f else 180f,
+        animationSpec = tween(
+            durationMillis = 300,
+            easing = LinearOutSlowInEasing
+        )
+    )
 
     val topCornerRadius = (if (hasItemAbove) 0 else 4).dp
     val bottomCornerRadius = (if (hasItemBelow) 0 else 4).dp
@@ -323,7 +333,7 @@ private fun TaskListItem(
                 if (isSystemInDarkTheme()) AppColors.ContainerDark
                 else AppColors.ContainerLight
             )
-            .padding(start = 10.dp, bottom = 10.dp)
+            .padding(bottom = 10.dp)
     ) {
         IconButton(
             onClick = { viewModel.tasks.remove(taskData) },
@@ -338,7 +348,7 @@ private fun TaskListItem(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp, end = 10.dp),
+                .padding(bottom = 10.dp, end = 10.dp, start = 10.dp),
             maxLines = 1,
             label = { Text(stringResource(R.string.add_task_title_label)) },
         )
@@ -351,9 +361,39 @@ private fun TaskListItem(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(end = 10.dp),
+                .padding(end = 10.dp, start = 10.dp),
             label = { Text(stringResource(R.string.add_task_description_label)) },
         )
+
+        HorizontalSpacer(padding = PaddingValues(top = 20.dp, bottom = 13.dp))
+
+        Row(modifier = Modifier
+            .padding(start = 10.dp, end = 10.dp)
+            .fillMaxWidth()
+            .clickable {
+                isExpanded = !isExpanded
+            }) {
+            Text(stringResource(R.string.add_task_additional_properties))
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    Icons.Outlined.KeyboardArrowDown,
+                    contentDescription = "",
+                    tint = Color.Gray,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .rotate(arrowAngle)
+                )
+            }
+        }
+        Box(modifier = Modifier.animateContentSize()) {
+            if (isExpanded) {
+                Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
+                    ReminderPicker(dueDate) { index, _ ->
+                        taskData.reminderIndex = index
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -387,7 +427,8 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
 
 data class TaskData(
     var title: String = "",
-    var description: String = ""
+    var description: String = "",
+    var reminderIndex: Int = -2
 )
 
 private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
@@ -424,6 +465,44 @@ private fun pickReminder(context: Context, onSelected: (selectedIndex: Int) -> U
         .setTitle(context.resources.getString(R.string.pick_reminder_dialog_title))
         .setItems(R.array.reminder_choices) { _, which -> onSelected(which) }
         .show()
+}
+
+@Composable
+private fun ReminderPicker(
+    dueDate: LocalDate?,
+    onReminderPicked: (index: Int, startDate: LocalDate) -> Unit
+) {
+    var reminderIndex by remember { mutableStateOf(-2) }
+    var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
+
+    val context = LocalContext.current
+
+    HorizontalButton(
+        text = if (reminderStartDate == null || reminderIndex == -2) {
+            stringResource(R.string.add_task_reminder_selector)
+        } else stringArrayResource(R.array.reminder_choices)[reminderIndex],
+        icon = Icons.Outlined.Notifications,
+    ) {
+        pickReminder(context) {
+            reminderIndex = it
+
+            fun dueDate() = dueDate ?: LocalDate.now()
+
+            reminderStartDate = if (reminderIndex == 0)
+                dueDate()
+            else {
+                val daysDifference = when (reminderIndex) {
+                    in 0..4 -> reminderIndex
+                    5 -> 7
+                    6 -> 14
+                    else -> -1
+                }.toLong()
+                dueDate().minusDays(daysDifference)
+            }
+
+            onReminderPicked(reminderIndex, reminderStartDate!!)
+        }
+    }
 }
 
 @Preview

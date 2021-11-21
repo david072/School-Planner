@@ -30,4 +30,5 @@
     <string name="move_tasks_description_singular">1 task refers to this subject. You need to move it to another subject first before you can continue.</string>
     <string name="move_tasks_description_plural">%count% tasks refer to this subject. You need to move them to another subject first before you can continue.</string>
     <string name="move_tasks_text_field_start_text">Select the target subject</string>
+    <string name="add_task_additional_properties">Additional properties</string>
 </resources>
