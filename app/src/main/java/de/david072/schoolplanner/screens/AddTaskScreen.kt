@@ -15,10 +15,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -68,36 +65,134 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit)
     val taskToEdit = viewModel.taskToEdit.collectAsState()
 
+    var didSetValues by remember { mutableStateOf(false) }
+
+    var title by remember { mutableStateOf("") }
+    var titleIsError by remember { mutableStateOf(false) }
+    var description by remember { mutableStateOf("") }
+
+    var dueDate: LocalDate? by remember { mutableStateOf(null) }
+    var dueDateIsError by remember { mutableStateOf(false) }
+    var reminderIndex by remember { mutableStateOf(-2) }
+    var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
+
+    val subjectId = navController?.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Int>("subject_id")
+        // Modify the value the first time if we're editing
+        ?.apply {
+            if (taskToEdit.value != null && !didSetValues) value =
+                taskToEdit.value!!.subjectId
+        }
+        ?.observeAsState()
+    var subjectIsError by remember { mutableStateOf(false) }
+
+    // region Helper functions (validate(), evalReminderStartDate())
+    fun validate(): Boolean {
+        var valid = true
+
+        // TODO: Add validation for each task item
+        if (taskIdToEdit != null) {
+            if (title.trim().isEmpty()) {
+                titleIsError = true
+                valid = false
+            }
+        }
+        if (dueDate == null) {
+            dueDateIsError = true
+            valid = false
+        }
+        if (reminderIndex == -2) valid = false
+        if (subjectId?.value == null) {
+            subjectIsError = true
+            valid = false
+        }
+
+        return valid
+    }
+
+    fun evalReminderStartDate(index: Int = reminderIndex): LocalDate? {
+        if (index == -2) return null
+
+        if (index == 0) {
+            reminderStartDate = dueDate
+            return dueDate
+        }
+
+        val daysDifference = when (index) {
+            in 0..4 -> index
+            5 -> 7
+            6 -> 14
+            else -> -1
+        }.toLong()
+
+        reminderStartDate =
+            if (dueDate != null) dueDate!!.minusDays(daysDifference) else LocalDate.now()
+                .minusDays(daysDifference)
+
+        return reminderStartDate
+    }
+    // endregion
+
     Scaffold(topBar = {
         AppTopAppBar(navController, true, actions = {
-            IconButton(onClick = { viewModel.tasks.add(TaskData()) }) {
-                Icon(Icons.Filled.Add, "")
+            if (taskIdToEdit == null) {
+                IconButton(onClick = { viewModel.tasks.add(TaskData()) }) {
+                    Icon(Icons.Filled.Add, "")
+                }
             }
         })
+    }, floatingActionButton = {
+        ExtendedFloatingActionButton(onClick = {
+            if (!validate()) return@ExtendedFloatingActionButton
+            if (taskToEdit.value != null) {
+                Task(
+                    uid = taskToEdit.value!!.uid,
+                    title = title,
+                    dueDate = dueDate!!,
+                    reminder = reminderStartDate!!,
+                    subjectId = subjectId!!.value!!,
+                    description = description,
+                    completed = taskToEdit.value!!.completed
+                ).let { viewModel.update(it) }
+            } else {
+                val tasks = arrayListOf<Task>()
+                viewModel.tasks.forEach {
+                    // Override reminder if a different one has been selected
+                    val reminder =
+                        if (it.reminderIndex == -2 ||
+                            it.reminderIndex == reminderIndex
+                        ) reminderStartDate!!
+                        else evalReminderStartDate(it.reminderIndex)!!
+
+                    tasks.add(
+                        Task(
+                            title = it.title,
+                            dueDate = dueDate!!,
+                            reminder = reminder,
+                            subjectId = subjectId!!.value!!,
+                            description = it.description,
+                            completed = false
+                        )
+                    )
+                }
+                viewModel.insertAll(tasks)
+            }
+            navController?.popBackStack()
+        }, icon = {
+            Icon(
+                if (taskToEdit.value == null) Icons.Filled.Add
+                else Icons.Outlined.Save,
+                ""
+            )
+        }, text = {
+            Text(
+                if (taskToEdit.value == null) stringResource(R.string.add_task_button)
+                else stringResource(R.string.general_save)
+            )
+        }, backgroundColor = MaterialTheme.colors.primary)
     }) {
         Box(modifier = Modifier.padding(PaddingValues(all = 10.dp))) {
-            var didSetValues by remember { mutableStateOf(false) }
-
-            var title by remember { mutableStateOf("") }
-            var titleIsError by remember { mutableStateOf(false) }
-            var description by remember { mutableStateOf("") }
-
-            var dueDate: LocalDate? by remember { mutableStateOf(null) }
-            var dueDateIsError by remember { mutableStateOf(false) }
-            var reminderIndex by remember { mutableStateOf(-2) }
-            var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
-
-            val subjectId = navController?.currentBackStackEntry
-                ?.savedStateHandle
-                ?.getLiveData<Int>("subject_id")
-                // Modify the value the first time if we're editing
-                ?.apply {
-                    if (taskToEdit.value != null && !didSetValues) value =
-                        taskToEdit.value!!.subjectId
-                }
-                ?.observeAsState()
-            var subjectIsError by remember { mutableStateOf(false) }
-
             val scrollState = rememberScrollState()
 
             // Set all of the values if we're editing. Only do this the first time though
@@ -110,29 +205,6 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 reminderIndex = Utils.getReminderIndex(task.dueDate, task.reminder)
                 reminderStartDate = task.reminder
                 didSetValues = true
-            }
-
-            fun validate(): Boolean {
-                var valid = true
-
-                // TODO: Add validation for each task item
-                if (taskIdToEdit != null) {
-                    if (title.trim().isEmpty()) {
-                        titleIsError = true
-                        valid = false
-                    }
-                }
-                if (dueDate == null) {
-                    dueDateIsError = true
-                    valid = false
-                }
-                if (reminderIndex == -2) valid = false
-                if (subjectId?.value == null) {
-                    subjectIsError = true
-                    valid = false
-                }
-
-                return valid
             }
 
             Column(
@@ -154,28 +226,6 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         label = { Text(stringResource(R.string.add_task_title_label)) },
                         isError = titleIsError
                     )
-                }
-
-                fun evalReminderStartDate(index: Int = reminderIndex): LocalDate? {
-                    if (index == -2) return null
-
-                    if (index == 0) {
-                        reminderStartDate = dueDate
-                        return dueDate
-                    }
-
-                    val daysDifference = when (index) {
-                        in 0..4 -> index
-                        5 -> 7
-                        6 -> 14
-                        else -> -1
-                    }.toLong()
-
-                    reminderStartDate =
-                        if (dueDate != null) dueDate!!.minusDays(daysDifference) else LocalDate.now()
-                            .minusDays(daysDifference)
-
-                    return reminderStartDate
                 }
 
                 HorizontalButton(
@@ -235,58 +285,6 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                             viewModel,
                             index != 0, // as long as it's not the first one
                             index != viewModel.tasks.size - 1 // as long as it's not the last one
-                        )
-                    }
-                }
-
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Button(
-                        onClick = {
-                            if (!validate()) return@Button
-                            if (taskToEdit.value != null) {
-                                Task(
-                                    uid = taskToEdit.value!!.uid,
-                                    title = title,
-                                    dueDate = dueDate!!,
-                                    reminder = reminderStartDate!!,
-                                    subjectId = subjectId!!.value!!,
-                                    description = description,
-                                    completed = taskToEdit.value!!.completed
-                                ).let { viewModel.update(it) }
-                            } else {
-                                val tasks = arrayListOf<Task>()
-                                viewModel.tasks.forEach {
-                                    // Override reminder if a different one has been selected
-                                    val reminder =
-                                        if (it.reminderIndex == -2 ||
-                                            it.reminderIndex == reminderIndex
-                                        ) reminderStartDate!!
-                                        else evalReminderStartDate(it.reminderIndex)!!
-
-                                    tasks.add(
-                                        Task(
-                                            title = it.title,
-                                            dueDate = dueDate!!,
-                                            reminder = reminder,
-                                            subjectId = subjectId!!.value!!,
-                                            description = it.description,
-                                            completed = false
-                                        )
-                                    )
-                                }
-                                viewModel.insertAll(tasks)
-                            }
-                            navController?.popBackStack()
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            if (taskToEdit.value == null) stringResource(R.string.add_task_button)
-                            else stringResource(
-                                R.string.general_save
-                            )
                         )
                     }
                 }
