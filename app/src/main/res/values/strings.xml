@@ -35,4 +35,6 @@
     <string name="date_tomorrow">Tomorrow</string>
     <string name="date_in_two_days">In two days</string>
     <string name="date_next_week">%weekDay% next week</string>
+    <string name="delete_subject_confirmation_dialog_title">Delete subject</string>
+    <string name="delete_subject_confirmation_dialog_message">Do you really want to delete the subject %subjectName%?</string>
 </resources>

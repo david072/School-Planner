@@ -20,4 +20,7 @@ interface SubjectDao {
 
     @Delete
     suspend fun delete(subject: Subject)
+
+    @Query("DELETE FROM subjects WHERE uid LIKE :id")
+    suspend fun delete(id: Int)
 }

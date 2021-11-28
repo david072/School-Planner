@@ -35,4 +35,6 @@
     <string name="date_tomorrow">Morgen</string>
     <string name="date_in_two_days">Übermorgen</string>
     <string name="date_next_week">%weekDay% nächste Woche</string>
+    <string name="delete_subject_confirmation_dialog_title">Fach löschen</string>
+    <string name="delete_subject_confirmation_dialog_message">Möchtest du das Fach %subjectName% wirklich löschen?</string>
 </resources>

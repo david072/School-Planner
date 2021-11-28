@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun EditSubjectsScreen(navController: NavController) {
+fun SubjectsScreen(navController: NavController) {
     Scaffold(
         topBar = { AppTopAppBar(navController = navController, backButton = true) },
         floatingActionButton = {
@@ -64,6 +64,8 @@ private fun SubjectListItem(
     viewModel: EditSubjectsScreenViewModel,
     subject: Subject
 ) {
+    var confirmDeleteDialogVisible by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -78,8 +80,7 @@ private fun SubjectListItem(
                     onClick = {
                         scope.launch {
                             if (viewModel.canDelete(subject.uid)) {
-                                // Delete subject
-                                println("Deleting subject")
+                                confirmDeleteDialogVisible = true
                                 return@launch
                             }
 
@@ -93,6 +94,29 @@ private fun SubjectListItem(
                 ) { Icon(Icons.Outlined.Edit, "") }
             }
         }
+    }
+
+    if (confirmDeleteDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteDialogVisible = false },
+            title = { Text(stringResource(R.string.delete_subject_confirmation_dialog_title)) },
+            text = {
+                Text(
+                    stringResource(R.string.delete_subject_confirmation_dialog_message)
+                        .replace("%subjectName%", subject.name)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(subject)
+                    confirmDeleteDialogVisible = false
+                }) { Text(stringResource(R.string.general_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteDialogVisible = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            })
     }
 }
 
@@ -112,6 +136,13 @@ class EditSubjectsScreenViewModel(application: Application) : AndroidViewModel(a
     suspend fun canDelete(subjectId: Int): Boolean =
         AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
             .findBySubject(subjectId).first().isEmpty()
+
+    fun delete(subject: Subject) {
+        viewModelScope.launch {
+            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+                .delete(subject)
+        }
+    }
 }
 
 // Used to migrate tasks to another subject. This is navigated to
@@ -288,10 +319,7 @@ class MigrateTasksDialogViewModel(application: Application) :
                 .update(task)
         }
 
-        val subjectDao =
-            AppDatabase.instance((getApplication() as Application).applicationContext)
-                .subjectDao()
-        val subjectToDelete = subjectDao.findById(subjectId).first()
-        subjectDao.delete(subjectToDelete)
+        AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
+            .delete(subjectId)
     }
 }

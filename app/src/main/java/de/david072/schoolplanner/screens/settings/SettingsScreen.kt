@@ -20,7 +20,7 @@ fun SettingsScreen(navController: NavController) {
         SettingsMenuLink(
             icon = { Icon(Icons.Outlined.School, "") },
             title = { Text(stringResource(R.string.edit_subjects_setting_title)) },
-            onClick = { navController.navigate("settings/edit_subjects") }
+            onClick = { navController.navigate("settings/subjects") }
         )
     }
 }
