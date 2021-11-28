@@ -41,6 +41,7 @@ import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @Composable
 fun HomeScreen(navController: NavController?) {
@@ -188,9 +189,21 @@ fun SubjectListItem(
     }
 }
 
+// TODO: Add some sort of animation when the task moves in the list
 @Composable
 fun TaskListItem(task: Task, navController: NavController?, viewModel: HomeScreenViewModel) {
     var completed by remember { mutableStateOf(task.completed) }
+    var taskId by remember { mutableStateOf(task.uid) }
+
+    // It seems like compose is "reusing" composables?
+    // This composable seems to get a different task when you mark it as
+    // completed (aka when the task position changes).
+    // Anyway this works but it's dumb.
+    if (task.uid != taskId) {
+        completed = task.completed
+        taskId = task.uid
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.height(IntrinsicSize.Min)
@@ -227,6 +240,12 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                 val generatedMap: MutableMap<Long, ArrayList<SubjectGroup>> = mutableMapOf()
                 it.forEach { task ->
                     val epochDay = task.dueDate.toEpochDay()
+                    // Delete the task if the due date passed
+                    if (epochDay < LocalDate.now().toEpochDay()) {
+                        launch { appDatabase.taskDao().delete(task) }
+                        return@forEach
+                    }
+
                     if (generatedMap[epochDay] == null) {
                         val subject = appDatabase.subjectDao().findById(task.subjectId).first()
                         generatedMap[epochDay] =

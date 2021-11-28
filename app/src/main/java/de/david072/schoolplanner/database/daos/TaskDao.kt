@@ -15,7 +15,7 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE uid LIKE :id")
     fun findById(id: Int): Flow<Task>
 
-    @Query("SELECT * FROM tasks ORDER BY due_date")
+    @Query("SELECT * FROM tasks ORDER BY due_date, completed")
     fun getOrderedByDueDate(): Flow<List<Task>>
 
     @Insert
