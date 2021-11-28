@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowColumn
+import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
@@ -39,9 +41,6 @@ import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @Composable
 fun HomeScreen(navController: NavController?) {
@@ -96,8 +95,7 @@ fun DateListItem(
             .clickable { isExpanded = !isExpanded }) {
             Row {
                 Text(
-                    LocalDate.ofEpochDay(date)
-                        .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)),
+                    Utils.formattedDate(date, LocalContext.current),
                     style = MaterialTheme.typography.h6
                 )
 

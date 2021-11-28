@@ -243,7 +243,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 }
                 HorizontalSpacer()
 
-                ReminderPicker(dueDate) { index, startDate ->
+                ReminderPicker(dueDate, reminderIndex, reminderStartDate) { index, startDate ->
                     reminderIndex = index
                     reminderStartDate = startDate
                 }
@@ -468,10 +468,16 @@ private fun pickReminder(context: Context, onSelected: (selectedIndex: Int) -> U
 @Composable
 private fun ReminderPicker(
     dueDate: LocalDate?,
+    _reminderIndex: Int = -2,
+    _reminderStartDate: LocalDate? = null,
     onReminderPicked: (index: Int, startDate: LocalDate) -> Unit
 ) {
-    var reminderIndex by remember { mutableStateOf(-2) }
-    var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
+    var reminderIndex by remember { mutableStateOf(_reminderIndex) }
+    var reminderStartDate: LocalDate? by remember { mutableStateOf(_reminderStartDate) }
+
+    // These values only update on the 3rd recomposition or so
+    if (_reminderIndex != -2) reminderIndex = _reminderIndex
+    if (_reminderStartDate != null) reminderStartDate = _reminderStartDate
 
     val context = LocalContext.current
 

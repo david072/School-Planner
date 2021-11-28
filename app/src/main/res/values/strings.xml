@@ -31,4 +31,8 @@
     <string name="move_tasks_description_plural">%count% tasks refer to this subject. You need to move them to another subject first before you can continue.</string>
     <string name="move_tasks_text_field_start_text">Select the target subject</string>
     <string name="add_task_additional_properties">Additional properties</string>
+    <string name="date_today">Today</string>
+    <string name="date_tomorrow">Tomorrow</string>
+    <string name="date_in_two_days">In two days</string>
+    <string name="date_next_week">%weekDay% next week</string>
 </resources>

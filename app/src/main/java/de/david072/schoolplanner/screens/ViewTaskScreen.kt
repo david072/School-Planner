@@ -100,9 +100,7 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
             )
 
             HorizontalButton(
-                text = task.value?.dueDate?.format(
-                    DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
-                ) ?: "",
+                text = task.value?.dueDate?.let { Utils.formattedDate(it, context) } ?: "",
                 icon = Icons.Outlined.Event,
             )
             HorizontalSpacer()
