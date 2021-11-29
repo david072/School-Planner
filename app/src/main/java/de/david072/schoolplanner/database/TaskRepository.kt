@@ -1,13 +1,22 @@
 package de.david072.schoolplanner.database
 
 import android.app.Application
+import android.content.Context
 import de.david072.schoolplanner.database.daos.TaskDao
 import de.david072.schoolplanner.database.entities.Task
 import kotlinx.coroutines.flow.Flow
 
-class TaskRepository(application: Application) {
+class TaskRepository {
 
-    private val taskDao: TaskDao = AppDatabase.instance(application).taskDao()
+    private val taskDao: TaskDao
+
+    constructor(application: Application) {
+        taskDao = AppDatabase.instance(application).taskDao()
+    }
+
+    constructor(context: Context) {
+        taskDao = AppDatabase.instance(context).taskDao()
+    }
 
     fun getAll(): Flow<List<Task>> = taskDao.getAll()
 

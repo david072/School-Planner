@@ -17,7 +17,11 @@ class Utils {
             }
         }
 
-        fun formattedDate(date: LocalDate, context: Context): String {
+        fun formattedDate(
+            date: LocalDate,
+            context: Context,
+            withPreposition: Boolean = false
+        ): String {
             val epochDay = date.toEpochDay()
             val currentEpochDay = LocalDate.now().toEpochDay()
 
@@ -29,18 +33,37 @@ class Utils {
             }
 
             return when {
-                epochDay == currentEpochDay -> context.resources.getString(R.string.date_today)
-                epochDay - 1 == currentEpochDay -> context.resources.getString(R.string.date_tomorrow)
-                epochDay - 2 == currentEpochDay -> context.resources.getString(R.string.date_in_two_days)
+                epochDay == currentEpochDay -> context.getString(
+                    if (!withPreposition) R.string.date_today
+                    else R.string.date_today_preposition
+                )
+                epochDay - 1 == currentEpochDay -> context.getString(
+                    if (!withPreposition) R.string.date_tomorrow
+                    else R.string.date_tomorrow_preposition
+                )
+                epochDay - 2 == currentEpochDay -> context.getString(
+                    if (!withPreposition) R.string.date_in_two_days
+                    else R.string.date_in_two_days_preposition
+                )
                 (date.isAfter(startOfNextWeek) || date.isEqual(startOfNextWeek)) && date.isBefore(
                     startOfNextWeek.plusDays(8)
-                ) -> context.resources.getString(R.string.date_next_week)
-                    .replace("%weekDay%", date.format(DateTimeFormatter.ofPattern("eeee")))
-                else -> date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
+                ) -> context.getString(
+                    if (!withPreposition) R.string.date_next_week
+                    else R.string.date_next_week_preposition
+                ).replace("%weekDay%", date.format(DateTimeFormatter.ofPattern("eeee")))
+                else -> date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)).let {
+                    if (!withPreposition) it
+                    else context.getString(R.string.date_long_date_preposition)
+                        .replace("%date%", it)
+                }
             }
         }
 
-        fun formattedDate(epochDay: Long, context: Context): String =
-            formattedDate(LocalDate.ofEpochDay(epochDay), context)
+        fun formattedDate(
+            epochDay: Long,
+            context: Context,
+            withPreposition: Boolean = false
+        ): String =
+            formattedDate(LocalDate.ofEpochDay(epochDay), context, withPreposition)
     }
 }

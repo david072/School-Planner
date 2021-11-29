@@ -63,6 +63,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        NotificationWorker.ensureStarted(this)
+        NotificationWorker.ensureReady(this)
     }
 }

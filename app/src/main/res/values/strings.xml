@@ -37,4 +37,11 @@
     <string name="date_next_week">%weekDay% next week</string>
     <string name="delete_subject_confirmation_dialog_title">Delete subject</string>
     <string name="delete_subject_confirmation_dialog_message">Do you really want to delete the subject %subjectName%?</string>
+    <string name="date_today_preposition">today</string>
+    <string name="date_tomorrow_preposition">tomorrow</string>
+    <string name="date_in_two_days_preposition">in two days</string>
+    <string name="date_next_week_preposition">on %weekDay% next week</string>
+    <string name="date_long_date_preposition">on %date%</string>
+    <string name="notification_channel_name">Task reminders</string>
+    <string name="notification_task_due_content_text">%taskTitle% (%subjectName%) is due %dueDateInfo%!</string>
 </resources>
