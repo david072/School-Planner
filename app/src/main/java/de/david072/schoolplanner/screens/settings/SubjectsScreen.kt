@@ -27,7 +27,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
+import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -126,21 +127,18 @@ class EditSubjectsScreenViewModel(application: Application) : AndroidViewModel(a
 
     init {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .getAll().collect {
-                    _subjects.value = it
-                }
+            SubjectRepository(getApplication()).getAll().collect {
+                _subjects.value = it
+            }
         }
     }
 
     suspend fun canDelete(subjectId: Int): Boolean =
-        AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-            .findBySubject(subjectId).first().isEmpty()
+        TaskRepository(getApplication()).findBySubject(subjectId).first().isEmpty()
 
     fun delete(subject: Subject) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .delete(subject)
+            SubjectRepository(getApplication()).delete(subject)
         }
     }
 }
@@ -262,24 +260,22 @@ class MigrateTasksDialogViewModel(application: Application) :
 
     init {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .findBySubject(subjectId).collect { _tasks.value = it }
+            TaskRepository(getApplication()).findBySubject(subjectId).collect { _tasks.value = it }
         }
 
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .getAll().collect {
-                    val list = ArrayList<Subject>(it)
-                    val iterator = list.iterator()
-                    while (iterator.hasNext()) {
-                        if (iterator.next().uid == subjectId) {
-                            iterator.remove()
-                            break
-                        }
+            SubjectRepository(getApplication()).getAll().collect {
+                val list = ArrayList<Subject>(it)
+                val iterator = list.iterator()
+                while (iterator.hasNext()) {
+                    if (iterator.next().uid == subjectId) {
+                        iterator.remove()
+                        break
                     }
-
-                    _subjects.value = list.toList()
                 }
+
+                _subjects.value = list.toList()
+            }
         }
     }
 
@@ -287,24 +283,22 @@ class MigrateTasksDialogViewModel(application: Application) :
         this.subjectId = subjectId
 
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .findBySubject(subjectId).collect { _tasks.value = it }
+            TaskRepository(getApplication()).findBySubject(subjectId).collect { _tasks.value = it }
         }
 
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .getAll().collect {
-                    val list = ArrayList<Subject>(it)
-                    val iterator = list.iterator()
-                    while (iterator.hasNext()) {
-                        if (iterator.next().uid == subjectId) {
-                            iterator.remove()
-                            break
-                        }
+            SubjectRepository(getApplication()).getAll().collect {
+                val list = ArrayList<Subject>(it)
+                val iterator = list.iterator()
+                while (iterator.hasNext()) {
+                    if (iterator.next().uid == subjectId) {
+                        iterator.remove()
+                        break
                     }
-
-                    _subjects.value = list.toList()
                 }
+
+                _subjects.value = list.toList()
+            }
         }
     }
 
@@ -315,11 +309,9 @@ class MigrateTasksDialogViewModel(application: Application) :
         //  Too bad...
         tasks.value.forEach { task ->
             task.subjectId = newSubjectId
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .update(task)
+            TaskRepository(getApplication()).update(task)
         }
 
-        AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-            .delete(subjectId)
+        SubjectRepository(getApplication()).delete(subjectId)
     }
 }

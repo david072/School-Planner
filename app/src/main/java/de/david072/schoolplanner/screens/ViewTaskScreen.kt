@@ -18,7 +18,8 @@ import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.Utils
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
+import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -147,16 +148,14 @@ class ViewTaskScreenViewModel(application: Application) :
 
     fun setTaskId(taskId: Int) {
         viewModelScope.launch {
-            val appDatabase =
-                AppDatabase.instance((getApplication() as Application).applicationContext)
-            appDatabase.taskDao().findById(taskId).collect { task: Task? ->
+            TaskRepository(getApplication()).findById(taskId).collect { task: Task? ->
                 _task.value = task
                 // Task could be null if it has been deleted (deleteTask())
                 if (task == null) {
                     cancel()
                     return@collect
                 }
-                appDatabase.subjectDao().findById(task.subjectId).collect { subject ->
+                SubjectRepository(getApplication()).findById(task.subjectId).collect { subject ->
                     _subject.value = subject
                 }
             }
@@ -168,8 +167,7 @@ class ViewTaskScreenViewModel(application: Application) :
 
         viewModelScope.launch {
             val task = task.value.apply { this!!.completed = completed }!!
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .update(task)
+            TaskRepository(getApplication()).update(task)
         }
     }
 
@@ -177,8 +175,7 @@ class ViewTaskScreenViewModel(application: Application) :
         if (task.value == null) return
 
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .delete(task.value!!)
+            TaskRepository(getApplication()).delete(task.value!!)
         }
     }
 }

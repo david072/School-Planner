@@ -38,7 +38,8 @@ import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.Utils
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
+import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalButton
@@ -253,8 +254,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 if (subjectId?.value != null) {
                     subjectIsError = false
 
-                    val subjectQueryState = AppDatabase.instance(LocalContext.current).subjectDao()
-                        .findById(subjectId.value!!).collectAsState(initial = null)
+                    val subjectQueryState = SubjectRepository(context).findById(subjectId.value!!)
+                        .collectAsState(initial = null)
                     if (subjectQueryState.value != null) subjectText =
                         subjectQueryState.value!!.name
                 }
@@ -403,22 +404,19 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
 
     fun setTaskId(taskId: Int) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
-                .findById(taskId).collect { _taskToEdit.value = it }
+            TaskRepository(getApplication()).findById(taskId).collect { _taskToEdit.value = it }
         }
     }
 
     fun insertAll(task: List<Task>) {
         viewModelScope.launch(Dispatchers.IO) {
-            AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
-                .insertAll(*task.toTypedArray())
+            TaskRepository(getApplication()).insertAll(*task.toTypedArray())
         }
     }
 
     fun update(task: Task) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).baseContext).taskDao()
-                .update(task)
+            TaskRepository(getApplication()).update(task)
         }
     }
 }

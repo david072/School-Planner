@@ -33,7 +33,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowColumn
 import de.david072.schoolplanner.Utils
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
+import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -232,9 +233,9 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
     init {
         viewModelScope.launch {
-            val appDatabase =
-                AppDatabase.instance((getApplication() as Application).applicationContext)
-            appDatabase.taskDao().getOrderedByDueDate().collect {
+            val taskRepository = TaskRepository(application)
+            val subjectRepository = SubjectRepository(application)
+            taskRepository.getOrderedByDueDate().collect {
                 // Temporary variable that is emitted into the flow _dates later.
                 // This is necessary, since otherwise the state won't update above.
                 val generatedMap: MutableMap<Long, ArrayList<SubjectGroup>> = mutableMapOf()
@@ -242,12 +243,12 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     val epochDay = task.dueDate.toEpochDay()
                     // Delete the task if the due date passed
                     if (epochDay < LocalDate.now().toEpochDay()) {
-                        launch { appDatabase.taskDao().delete(task) }
+                        launch { taskRepository.delete(task) }
                         return@forEach
                     }
 
                     if (generatedMap[epochDay] == null) {
-                        val subject = appDatabase.subjectDao().findById(task.subjectId).first()
+                        val subject = subjectRepository.findById(task.subjectId).first()
                         generatedMap[epochDay] =
                             arrayListOf(SubjectGroup(subject, arrayListOf(task)))
                         return@forEach
@@ -265,7 +266,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
 
                     if (!didAddTask) {
-                        val subject = appDatabase.subjectDao().findById(task.subjectId).first()
+                        val subject = subjectRepository.findById(task.subjectId).first()
                         generatedMap[epochDay]!!.add(SubjectGroup(subject, arrayListOf(task)))
                     }
                 }
@@ -277,8 +278,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
     fun setCompleted(task: Task, completed: Boolean) {
         viewModelScope.launch {
             task.completed = completed
-            AppDatabase.instance((getApplication() as Application).applicationContext).taskDao()
-                .update(task)
+            TaskRepository(getApplication()).update(task)
         }
     }
 }

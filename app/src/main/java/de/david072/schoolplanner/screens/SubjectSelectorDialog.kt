@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.ui.HorizontalSpacer
 
 @Composable
@@ -24,7 +24,7 @@ fun SubjectSelectorDialog(navController: NavController) {
         onDismissRequest = { navController.popBackStack() },
         title = { Text("Select Subject") },
         text = {
-            val subjects = AppDatabase.instance(LocalContext.current).subjectDao().getAll()
+            val subjects = SubjectRepository(LocalContext.current).getAll()
                 .collectAsState(initial = listOf())
 
             LazyColumn {

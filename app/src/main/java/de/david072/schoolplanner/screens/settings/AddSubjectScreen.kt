@@ -22,7 +22,7 @@ import androidx.navigation.NavController
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.AppDatabase
+import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.ui.AppTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -196,24 +196,21 @@ class AddSubjectScreenViewModel(application: Application) : AndroidViewModel(app
 
     fun setSubjectId(subjectId: Int) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .findById(subjectId).collect {
-                    _subjectToEdit.value = it
-                }
+            SubjectRepository(getApplication()).findById(subjectId).collect {
+                _subjectToEdit.value = it
+            }
         }
     }
 
     fun insert(subject: Subject) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .insert(subject)
+            SubjectRepository(getApplication()).insert(subject)
         }
     }
 
     fun update(subject: Subject) {
         viewModelScope.launch {
-            AppDatabase.instance((getApplication() as Application).applicationContext).subjectDao()
-                .update(subject)
+            SubjectRepository(getApplication()).update(subject)
         }
     }
 }
