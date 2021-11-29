@@ -18,6 +18,7 @@ import de.david072.schoolplanner.screens.settings.MoveTasksAndDeleteSubjectDialo
 import de.david072.schoolplanner.screens.settings.SettingsScreen
 import de.david072.schoolplanner.screens.settings.SubjectsScreen
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
+import de.david072.schoolplanner.workers.NotificationWorker
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,5 +62,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
+        NotificationWorker.ensureStarted(this)
     }
 }
