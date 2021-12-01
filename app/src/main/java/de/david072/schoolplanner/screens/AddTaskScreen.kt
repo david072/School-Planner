@@ -54,6 +54,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.*
@@ -236,7 +237,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     icon = Icons.Outlined.Event,
                     isError = dueDateIsError
                 ) {
-                    pickDate(context) {
+                    pickDate(context, dueDate) {
                         dueDate = it
                         dueDateIsError = false
                         evalReminderStartDate()
@@ -427,12 +428,29 @@ data class TaskData(
     var reminderIndex: Int = -2
 )
 
-private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
+private fun pickDate(
+    context: Context,
+    selection: LocalDate? = null,
+    onDateSelected: (LocalDate) -> Unit
+) {
     MaterialDatePicker.Builder
         .datePicker()
         .setCalendarConstraints(
             CalendarConstraints.Builder()
-                .setStart(LocalDate.now().month.value.toLong())
+                .setOpenAt(
+                    Calendar.getInstance().let {
+                        when {
+                            selection != null -> it.apply {
+                                set(Calendar.MONTH, selection.monthValue - 1)
+                                set(Calendar.YEAR, selection.year)
+                            }
+                            it.get(Calendar.DAY_OF_MONTH) == YearMonth.now()
+                                .lengthOfMonth() -> it.apply { add(Calendar.MONTH, 1) }
+                            else -> it
+                        }
+                    }.timeInMillis
+                )
+                .setStart(LocalDate.now().monthValue.toLong())
                 .setValidator(object : CalendarConstraints.DateValidator {
                     override fun describeContents(): Int = 0
                     override fun writeToParcel(dest: Parcel?, flags: Int) {}
@@ -442,6 +460,19 @@ private fun pickDate(context: Context, onDateSelected: (LocalDate) -> Unit) {
                         date > Calendar.getInstance().timeInMillis
                 }).build()
         )
+        .let {
+            if (selection != null) {
+                it.setSelection(
+                    Calendar.getInstance()
+                        .apply {
+                            set(Calendar.DAY_OF_MONTH, selection.dayOfMonth)
+                            // LocalDate december: 12 Calendar december: 11 :/
+                            set(Calendar.MONTH, selection.monthValue - 1)
+                            set(Calendar.YEAR, selection.year)
+                        }.timeInMillis
+                )
+            } else it
+        }
         .build()
         .apply {
             addOnPositiveButtonClickListener { selection ->

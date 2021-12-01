@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -81,7 +82,7 @@ fun DateListItem(
     date: Long,
     subjectGroups: ArrayList<SubjectGroup>?
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by rememberSaveable { mutableStateOf(true) }
 
     val arrowAngle by animateFloatAsState(
         targetValue = if (isExpanded) 360f else 180f,
