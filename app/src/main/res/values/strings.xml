@@ -44,4 +44,5 @@
     <string name="date_long_date_preposition">on %date%</string>
     <string name="notification_channel_name">Task reminders</string>
     <string name="notification_task_due_content_text">%taskTitle% (%subjectName%) is due %dueDateInfo%!</string>
+    <string name="notification_mark_completed_action">Mark as completed</string>
 </resources>

@@ -2,7 +2,9 @@ package de.david072.schoolplanner.workers
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
@@ -33,7 +35,7 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
                 return@forEach
             }
 
-            if (task.reminder.isBefore(now) || task.reminder.isEqual(now)) {
+            if (!task.completed && (task.reminder.isBefore(now) || task.reminder.isEqual(now))) {
                 val subject = subjectRepository.findById(task.subjectId).first()
 
                 val contentText = context.getString(R.string.notification_task_due_content_text)
@@ -44,25 +46,43 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
                         Utils.formattedDate(task.dueDate, context, withPreposition = true)
                     )
 
-                // Safety check! Should never actually matter
-                if (CHANNEL_ID.isEmpty()) createNotificationChannel(context)
+                if (channelId.isEmpty()) createNotificationChannel(context)
+
+                val sharedPrefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+                val notificationId = sharedPrefs.getInt(LAST_NOTIFICATION_KEY, 0) + 1
+
+                println("Notification id: $notificationId")
+
+                val markCompletedIntent = Intent(context, MarkCompletedReceiver::class.java).apply {
+                    putExtra(MarkCompletedReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                    putExtra(MarkCompletedReceiver.EXTRA_TASK_ID, task.uid)
+                }
+
+                val markCompletedPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    0,
+                    markCompletedIntent,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                )
 
                 // TODO: Add: On click to go to view task screen, action to mark the task completed
-                val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                val notification = NotificationCompat.Builder(context, channelId)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle("${subject.name}: ${task.title}")
                     .setContentText(contentText)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+                    .addAction(
+                        R.drawable.ic_check,
+                        context.getString(R.string.notification_mark_completed_action),
+                        markCompletedPendingIntent
+                    )
                     .apply {
                         // TODO: Make this a setting too?
                         priority = NotificationCompat.PRIORITY_HIGH
                     }
                     .build()
 
-                val sharedPrefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
-                var notificationId = sharedPrefs.getInt(LAST_NOTIFICATION_KEY, 0)
-
-                NotificationManagerCompat.from(context).notify(++notificationId, notification)
+                NotificationManagerCompat.from(context).notify(notificationId, notification)
                 sharedPrefs.edit { putInt(LAST_NOTIFICATION_KEY, notificationId) }
             }
         }
@@ -74,7 +94,7 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
     companion object {
         private const val TAG = "notification-worker-tag"
         private const val LAST_NOTIFICATION_KEY = "notification-worker-last-notification-key"
-        private var CHANNEL_ID = "" // Notification channel id
+        private var channelId = "" // Notification channel id
 
         fun ensureReady(context: Context) {
             createNotificationChannel(context)
@@ -119,7 +139,7 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
 
         private fun createNotificationChannel(context: Context) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
+                channelId,
                 context.getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             )

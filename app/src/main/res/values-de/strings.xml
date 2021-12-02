@@ -44,4 +44,5 @@
     <string name="date_long_date_preposition">am %date%</string>
     <string name="notification_channel_name">Aufgaben-Erinnerungen</string>
     <string name="notification_task_due_content_text">%taskTitle% (%subjectName%) ist %dueDateInfo% fällig!</string>
+    <string name="notification_mark_completed_action">Als erledigt markieren</string>
 </resources>
