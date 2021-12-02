@@ -290,7 +290,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                             dueDate,
                             viewModel,
                             index != 0, // as long as it's not the first one
-                            index != viewModel.tasks.size - 1 // as long as it's not the last one
+                            index != viewModel.tasks.size - 1, // as long as it's not the last one
+                            viewModel.tasks.size > 1
                         )
                     }
                 }
@@ -307,7 +308,8 @@ private fun TaskListItem(
     dueDate: LocalDate?,
     viewModel: AddTaskViewModel,
     hasItemAbove: Boolean = false,
-    hasItemBelow: Boolean = false
+    hasItemBelow: Boolean = false,
+    showProperties: Boolean = true,
 ) {
     val subjectId = navController?.currentBackStackEntry
         ?.savedStateHandle
@@ -345,6 +347,7 @@ private fun TaskListItem(
                 else AppColors.ContainerLight
             )
             .padding(bottom = 10.dp)
+            .animateContentSize()
     ) {
         IconButton(
             onClick = { viewModel.tasks.remove(taskData) },
@@ -376,52 +379,58 @@ private fun TaskListItem(
             label = { Text(stringResource(R.string.add_task_description_label)) },
         )
 
-        HorizontalSpacer(padding = PaddingValues(top = 20.dp, bottom = 13.dp))
+        if (showProperties) {
+            HorizontalSpacer(padding = PaddingValues(top = 20.dp, bottom = 13.dp))
 
-        Row(modifier = Modifier
-            .padding(start = 10.dp, end = 10.dp)
-            .fillMaxWidth()
-            .clickable {
-                isExpanded = !isExpanded
-            }) {
-            Text(stringResource(R.string.add_task_additional_properties))
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Outlined.KeyboardArrowDown,
-                    contentDescription = "",
-                    tint = Color.Gray,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .rotate(arrowAngle)
-                )
+            Row(modifier = Modifier
+                .padding(start = 10.dp, end = 10.dp)
+                .fillMaxWidth()
+                .clickable {
+                    isExpanded = !isExpanded
+                }) {
+                Text(stringResource(R.string.add_task_additional_properties))
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Icon(
+                        Icons.Outlined.KeyboardArrowDown,
+                        contentDescription = "",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .rotate(arrowAngle)
+                    )
+                }
             }
-        }
-        Box(modifier = Modifier.animateContentSize()) {
-            if (isExpanded) {
-                Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-                    ReminderPicker(dueDate) { index, _ ->
-                        taskData.reminderIndex = index
+
+            Box(modifier = Modifier.animateContentSize()) {
+                if (isExpanded) {
+                    Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
+                        ReminderPicker(dueDate) { index, _ ->
+                            taskData.reminderIndex = index
+                        }
+
+                        var subjectText = stringResource(R.string.add_task_subject_selector)
+                        if (subjectId?.value != null) {
+                            val subjectQueryState = SubjectRepository(LocalContext.current)
+                                .findById(subjectId.value!!)
+                                .collectAsState(initial = null)
+
+                            if (subjectQueryState.value != null) subjectText =
+                                subjectQueryState.value!!.name
+
+                            taskData.subjectId = subjectId.value!!
+                        }
+
+                        HorizontalButton(
+                            text = subjectText,
+                            icon = Icons.Outlined.School,
+                        ) { navController?.navigate("subject_select_dialog?id=$index") }
                     }
-
-                    var subjectText = stringResource(R.string.add_task_subject_selector)
-                    if (subjectId?.value != null) {
-                        val subjectQueryState = SubjectRepository(LocalContext.current)
-                            .findById(subjectId.value!!)
-                            .collectAsState(initial = null)
-
-                        if (subjectQueryState.value != null) subjectText =
-                            subjectQueryState.value!!.name
-
-                        taskData.subjectId = subjectId.value!!
-                    }
-
-                    HorizontalButton(
-                        text = subjectText,
-                        icon = Icons.Outlined.School,
-                    ) { navController?.navigate("subject_select_dialog?id=$index") }
                 }
             }
         }
+        // Collapse the properties field, since it shouldn't be opened when it becomes
+        // visible again
+        else isExpanded = false
     }
 }
 
