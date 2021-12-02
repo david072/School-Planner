@@ -167,12 +167,14 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         ) reminderStartDate!!
                         else evalReminderStartDate(it.reminderIndex)!!
 
+                    val taskSubjectId = it.subjectId ?: subjectId?.value!!
+
                     tasks.add(
                         Task(
                             title = it.title,
                             dueDate = dueDate!!,
                             reminder = reminder,
-                            subjectId = subjectId!!.value!!,
+                            subjectId = taskSubjectId,
                             description = it.description,
                             completed = false
                         )
@@ -282,6 +284,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                     Box(modifier = Modifier.padding(top = 20.dp)) // Spacer
                     repeat(viewModel.tasks.size) { index ->
                         TaskListItem(
+                            navController,
+                            index,
                             viewModel.tasks[index],
                             dueDate,
                             viewModel,
@@ -297,12 +301,19 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
 
 @Composable
 private fun TaskListItem(
+    navController: NavController?,
+    index: Int,
     taskData: TaskData,
     dueDate: LocalDate?,
     viewModel: AddTaskViewModel,
     hasItemAbove: Boolean = false,
     hasItemBelow: Boolean = false
 ) {
+    val subjectId = navController?.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Int>("subject_id_$index")
+        ?.observeAsState()
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
@@ -391,6 +402,23 @@ private fun TaskListItem(
                     ReminderPicker(dueDate) { index, _ ->
                         taskData.reminderIndex = index
                     }
+
+                    var subjectText = stringResource(R.string.add_task_subject_selector)
+                    if (subjectId?.value != null) {
+                        val subjectQueryState = SubjectRepository(LocalContext.current)
+                            .findById(subjectId.value!!)
+                            .collectAsState(initial = null)
+
+                        if (subjectQueryState.value != null) subjectText =
+                            subjectQueryState.value!!.name
+
+                        taskData.subjectId = subjectId.value!!
+                    }
+
+                    HorizontalButton(
+                        text = subjectText,
+                        icon = Icons.Outlined.School,
+                    ) { navController?.navigate("subject_select_dialog?id=$index") }
                 }
             }
         }
@@ -425,7 +453,8 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
 data class TaskData(
     var title: String = "",
     var description: String = "",
-    var reminderIndex: Int = -2
+    var reminderIndex: Int = -2,
+    var subjectId: Int? = null
 )
 
 private fun pickDate(

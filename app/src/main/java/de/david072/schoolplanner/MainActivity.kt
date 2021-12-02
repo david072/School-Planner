@@ -58,7 +58,16 @@ class MainActivity : AppCompatActivity() {
                         arguments = listOf(subjectIdArgument)
                     ) { AddSubjectScreen(navController, it.arguments!!.getInt("subjectId")) }
 
-                    dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
+                    dialog("subject_select_dialog?id={id}", arguments = listOf(navArgument("id") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    })) {
+                        val idArgument = it.arguments?.getInt("id")!!
+                        SubjectSelectorDialog(
+                            navController,
+                            if (idArgument == -1) null else idArgument
+                        )
+                    }
                 }
 
                 val startDestination = intent.getStringExtra(NAV_START_ROUTE_KEY)

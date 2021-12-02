@@ -19,7 +19,7 @@ import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.ui.HorizontalSpacer
 
 @Composable
-fun SubjectSelectorDialog(navController: NavController) {
+fun SubjectSelectorDialog(navController: NavController, id: Int?) {
     AlertDialog(
         onDismissRequest = { navController.popBackStack() },
         title = { Text("Select Subject") },
@@ -36,7 +36,11 @@ fun SubjectSelectorDialog(navController: NavController) {
                                 .clickable {
                                     navController.previousBackStackEntry
                                         ?.savedStateHandle
-                                        ?.set("subject_id", it[index].uid)
+                                        ?.set(
+                                            // Append the id with a leading underscore if we have one
+                                            "subject_id${if (id != null) "_$id" else ""}",
+                                            it[index].uid
+                                        )
                                     navController.popBackStack()
                                 }) {
                             Text(
