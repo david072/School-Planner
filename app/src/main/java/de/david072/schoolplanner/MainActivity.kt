@@ -60,9 +60,18 @@ class MainActivity : AppCompatActivity() {
 
                     dialog("subject_select_dialog") { SubjectSelectorDialog(navController) }
                 }
+
+                val startDestination = intent.getStringExtra(NAV_START_ROUTE_KEY)
+                if (startDestination != null)
+                    navController.navigate(startDestination)
             }
         }
 
+        // FIXME: Do this only once per app start
         NotificationWorker.ensureReady(this)
+    }
+
+    companion object {
+        const val NAV_START_ROUTE_KEY = "main-nav-start-route"
     }
 }

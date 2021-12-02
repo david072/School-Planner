@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
 import androidx.work.*
+import de.david072.schoolplanner.MainActivity
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.SubjectRepository
@@ -75,6 +76,20 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
                         R.drawable.ic_check,
                         context.getString(R.string.notification_mark_completed_action),
                         markCompletedPendingIntent
+                    )
+                    .setContentIntent(
+                        PendingIntent.getActivity(
+                            context,
+                            0,
+                            Intent(context, MainActivity::class.java).apply {
+                                putExtra(
+                                    MainActivity.NAV_START_ROUTE_KEY,
+                                    "view_task/${task.uid}"
+                                )
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            },
+                            PendingIntent.FLAG_IMMUTABLE
+                        )
                     )
                     .apply {
                         // TODO: Make this a setting too?
