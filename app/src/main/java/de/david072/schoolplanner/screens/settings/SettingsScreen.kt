@@ -12,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.Preference
 
 @Composable
 fun SettingsScreen(navController: NavController) {

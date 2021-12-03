@@ -1,4 +1,4 @@
-package de.david072.schoolplanner.screens.settings
+package de.david072.schoolplanner.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -45,7 +46,11 @@ private fun Icon(icon: @Composable (() -> Unit)? = null) {
 }
 
 @Composable
-private fun PreferenceBase(onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+private fun PreferenceBase(
+    onClick: (() -> Unit)? = null,
+    icon: @Composable (() -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -57,7 +62,9 @@ private fun PreferenceBase(onClick: (() -> Unit)? = null, content: @Composable (
             },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.width(15.dp))
+        if (icon == null)
+            Box(modifier = Modifier.width(15.dp))
+        else Icon(icon)
         content()
     }
 }
@@ -69,9 +76,7 @@ fun Preference(
     icon: @Composable (() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    PreferenceBase(onClick) {
-        Icon(icon)
-
+    PreferenceBase(onClick, icon) {
         Column {
             Title(title)
             Subtitle(subtitle)
@@ -79,10 +84,12 @@ fun Preference(
     }
 }
 
+// Dialog looks weird when there are a lot of items displayed
 @Composable
 fun SelectPreference(
     title: @Composable () -> Unit,
     subtitle: @Composable (() -> Unit)? = null,
+    subtitleTemplate: String? = null,
     icon: @Composable (() -> Unit)? = null,
     items: List<String>,
     key: String? = null
@@ -90,20 +97,25 @@ fun SelectPreference(
     val context = LocalContext.current
 
     var dialogVisible by remember { mutableStateOf(false) }
-    var subtitleText: String? by remember { mutableStateOf(null) }
+    var selectedOption: String? by remember { mutableStateOf(null) }
     var didInitialize by remember { mutableStateOf(false) }
 
     if (!didInitialize && subtitle == null) {
-        subtitleText = PreferenceManager.getDefaultSharedPreferences(context).getString(key, null)
+        selectedOption = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(key, null)
         didInitialize = true
     }
 
-    PreferenceBase(onClick = { dialogVisible = true }) {
-        Icon(icon)
-
+    PreferenceBase(onClick = { dialogVisible = true }, icon) {
         Column {
             Title(title)
-            Subtitle(subtitle ?: subtitleText?.let { { Text(subtitleText!!) } })
+            Subtitle(subtitle ?: selectedOption?.let {
+                {
+                    if (subtitleTemplate != null && subtitleTemplate.contains("%val%"))
+                        Text(subtitleTemplate.replace("%val%", selectedOption!!))
+                    else Text(selectedOption!!)
+                }
+            })
         }
     }
 
@@ -117,7 +129,7 @@ fun SelectPreference(
                         val item = items[index]
 
                         val clickHandler = {
-                            if (subtitle == null) subtitleText = item
+                            if (subtitle == null) selectedOption = item
                             if (key != null) {
                                 PreferenceManager.getDefaultSharedPreferences(context).edit {
                                     putString(key, item)
@@ -143,5 +155,60 @@ fun SelectPreference(
                 }
             },
             confirmButton = {})
+    }
+}
+
+// TODO: Add ripple effect on click
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
+@Composable
+fun DropdownPreference(
+    title: @Composable () -> Unit,
+    subtitle: @Composable (() -> Unit)? = null,
+    subtitleTemplate: String? = null,
+    icon: @Composable (() -> Unit)? = null,
+    items: List<String>,
+    key: String? = null
+) {
+    val context = LocalContext.current
+
+    var expanded by remember { mutableStateOf(false) }
+    var selectedOption: String? by remember { mutableStateOf(null) }
+    var didInitialize by remember { mutableStateOf(false) }
+
+    if (!didInitialize && subtitle == null) {
+        selectedOption = PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(key, null)
+        didInitialize = true
+    }
+
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        PreferenceBase(icon = icon) {
+            Column {
+                Title(title)
+                Subtitle(subtitle ?: selectedOption?.let {
+                    {
+                        if (subtitleTemplate != null && subtitleTemplate.contains("%val%"))
+                            Text(subtitleTemplate.replace("%val%", selectedOption!!))
+                        else Text(selectedOption!!)
+                    }
+                })
+            }
+        }
+
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            items.forEach { item ->
+                DropdownMenuItem(onClick = {
+                    if (subtitle == null) selectedOption = item
+                    if (key != null) {
+                        PreferenceManager.getDefaultSharedPreferences(context).edit {
+                            putString(key, item)
+                        }
+                    }
+                    expanded = false
+                }) {
+                    Text(item)
+                }
+            }
+        }
     }
 }
