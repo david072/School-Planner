@@ -83,7 +83,7 @@ dependencies {
     implementation "com.google.accompanist:accompanist-flowlayout:0.21.2-beta"
 
     // Preferences
-    implementation 'com.github.alorma:compose-settings-ui:0.7.2'
+    implementation "androidx.preference:preference-ktx:1.1.1"
 
     // Color picker
     implementation 'com.godaddy.android.colorpicker:compose-color-picker:0.2.1'

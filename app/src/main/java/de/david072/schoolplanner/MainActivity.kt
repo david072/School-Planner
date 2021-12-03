@@ -13,10 +13,7 @@ import de.david072.schoolplanner.screens.AddTaskScreen
 import de.david072.schoolplanner.screens.HomeScreen
 import de.david072.schoolplanner.screens.SubjectSelectorDialog
 import de.david072.schoolplanner.screens.ViewTaskScreen
-import de.david072.schoolplanner.screens.settings.AddSubjectScreen
-import de.david072.schoolplanner.screens.settings.MoveTasksAndDeleteSubjectDialog
-import de.david072.schoolplanner.screens.settings.SettingsScreen
-import de.david072.schoolplanner.screens.settings.SubjectsScreen
+import de.david072.schoolplanner.screens.settings.*
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import de.david072.schoolplanner.workers.NotificationWorker
 
@@ -51,6 +48,8 @@ class MainActivity : AppCompatActivity() {
                             it.arguments!!.getInt("subjectId")
                         )
                     }
+
+                    composable("settings/notifications") { NotificationSettings(navController) }
 
                     composable("settings/add_subject") { AddSubjectScreen(navController) }
                     composable(
