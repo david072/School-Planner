@@ -52,4 +52,6 @@
     <string name="notification_settings_priority_high">Hoch</string>
     <string name="notification_settings_priority_low">Niedrig</string>
     <string name="notification_settings_priority_default">Standard</string>
+    <string name="notification_settings_system_options_title">System Einstellungen</string>
+    <string name="notification_settings_system_options_subtitle">System Benachrichtigungs-Einstellungen für diese App</string>
 </resources>

@@ -1,5 +1,6 @@
 package de.david072.schoolplanner.screens.settings
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Icon
 import androidx.compose.material.Scaffold
@@ -8,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.NotificationCompat
@@ -15,6 +17,7 @@ import androidx.navigation.NavController
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.DropdownPreference
+import de.david072.schoolplanner.ui.Preference
 import de.david072.schoolplanner.ui.SelectPreference
 import de.david072.schoolplanner.util.SettingsKeys
 
@@ -22,6 +25,8 @@ import de.david072.schoolplanner.util.SettingsKeys
 @Composable
 fun NotificationSettings(navController: NavController? = null) {
     Scaffold(topBar = { AppTopAppBar(navController = navController, backButton = true) }) {
+        val context = LocalContext.current
+
         if (notificationHourItems == null) {
             notificationHourItems = mutableMapOf()
             for (i in 0 until 24) notificationHourItems!![i] = i.toString()
@@ -56,6 +61,16 @@ fun NotificationSettings(navController: NavController? = null) {
                 ),
                 defaultValue = NotificationCompat.PRIORITY_DEFAULT,
                 key = SettingsKeys.Notifications.notificationPriority
+            )
+            Preference(
+                title = { Text(stringResource(R.string.notification_settings_system_options_title)) },
+                subtitle = { Text(stringResource(R.string.notification_settings_system_options_subtitle)) },
+                onClick = {
+                    context.startActivity(Intent().apply {
+                        action = "android.settings.APP_NOTIFICATION_SETTINGS"
+                        putExtra("android.provider.extra.APP_PACKAGE", context.packageName)
+                    })
+                }
             )
         }
     }
