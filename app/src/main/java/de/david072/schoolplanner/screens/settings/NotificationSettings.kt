@@ -21,14 +21,17 @@ import de.david072.schoolplanner.ui.SelectPreference
 @Composable
 fun NotificationSettings(navController: NavController? = null) {
     Scaffold(topBar = { AppTopAppBar(navController = navController, backButton = true) }) {
-        Column {
-            val notificationHourItems = mutableMapOf<Int, String>()
-            for (i in 0 until 24) notificationHourItems[i] = i.toString()
+        if (notificationHourItems == null) {
+            notificationHourItems = mutableMapOf()
+            for (i in 0 until 24) notificationHourItems!![i] = i.toString()
+        }
 
+        Column {
             SelectPreference(
                 title = { Text(stringResource(R.string.notification_settings_target_hour_title)) },
                 icon = { Icon(Icons.Outlined.Schedule, "") },
-                items = notificationHourItems,
+                items = notificationHourItems!!,
+                defaultValue = 12,
                 subtitleTemplate = stringResource(R.string.notification_settings_target_hour_subtitle_template),
                 key = "notification_target_hour"
             )
@@ -50,8 +53,11 @@ fun NotificationSettings(navController: NavController? = null) {
                         stringResource(R.string.notification_settings_priority_default)
                     )
                 ),
+                defaultValue = NotificationCompat.PRIORITY_DEFAULT,
                 key = "notification_priority"
             )
         }
     }
 }
+
+private var notificationHourItems: MutableMap<Int, String>? = null

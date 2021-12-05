@@ -3,7 +3,6 @@ package de.david072.schoolplanner.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,22 +92,28 @@ fun SelectPreference(
     subtitleTemplate: String? = null,
     icon: @Composable (() -> Unit)? = null,
     items: Map<Int, String>,
+    defaultValue: Int? = null,
     key: String? = null
 ) {
+    if (defaultValue != null)
+        assert(items[defaultValue] != null) { "The default value must be in the items." }
+
     val context = LocalContext.current
 
     var dialogVisible by remember { mutableStateOf(false) }
     var selectedOption: String? by remember { mutableStateOf(null) }
     var didInitialize by remember { mutableStateOf(false) }
 
-    val scrollState = rememberScrollState()
-
     if (!didInitialize && subtitle == null) {
-        val keyStored = PreferenceManager.getDefaultSharedPreferences(context).getInt(key, -1)
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val keyStored = sharedPreferences.getInt(key, -123)
 
-        if (keyStored == -1 || !items.containsKey(keyStored))
-            PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
-        else
+        if (keyStored == -123 || !items.containsKey(keyStored)) {
+            if (defaultValue != null) {
+                sharedPreferences.edit { putInt(key, defaultValue) }
+                selectedOption = items[defaultValue]
+            } else PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
+        } else
             selectedOption = items[keyStored]
 
         didInitialize = true
@@ -177,8 +182,12 @@ fun DropdownPreference(
     subtitleTemplate: String? = null,
     icon: @Composable (() -> Unit)? = null,
     items: Map<Int, String>,
+    defaultValue: Int? = null,
     key: String? = null
 ) {
+    if (defaultValue != null)
+        assert(items[defaultValue] != null) { "The default value must be in the items." }
+
     val context = LocalContext.current
 
     var expanded by remember { mutableStateOf(false) }
@@ -186,11 +195,15 @@ fun DropdownPreference(
     var didInitialize by remember { mutableStateOf(false) }
 
     if (!didInitialize && subtitle == null) {
-        val keyStored = PreferenceManager.getDefaultSharedPreferences(context).getInt(key, -123)
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val keyStored = sharedPreferences.getInt(key, -123)
 
-        if (keyStored == -123 || !items.containsKey(keyStored))
-            PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
-        else
+        if (keyStored == -123 || !items.containsKey(keyStored)) {
+            if (defaultValue != null) {
+                sharedPreferences.edit { putInt(key, defaultValue) }
+                selectedOption = items[defaultValue]
+            } else PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
+        } else
             selectedOption = items[keyStored]
 
         didInitialize = true
