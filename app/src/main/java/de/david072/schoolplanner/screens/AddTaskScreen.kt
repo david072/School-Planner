@@ -70,13 +70,13 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     var didSetValues by remember { mutableStateOf(false) }
 
     var title by remember { mutableStateOf("") }
-    var titleIsError by remember { mutableStateOf(false) }
     var description by remember { mutableStateOf("") }
 
     var dueDate: LocalDate? by remember { mutableStateOf(null) }
     var dueDateIsError by remember { mutableStateOf(false) }
     var reminderIndex by remember { mutableStateOf(-2) }
     var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
+    var reminderIsError by remember { mutableStateOf(false) }
 
     val subjectId = navController?.currentBackStackEntry
         ?.savedStateHandle
@@ -89,14 +89,23 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
         ?.observeAsState()
     var subjectIsError by remember { mutableStateOf(false) }
 
-    // region Helper functions (validate(), evalReminderStartDate())
+    val scaffoldState = rememberScaffoldState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // region Helper functions (showErrorSnackbar(), validate(), evalReminderStartDate())
+    fun showErrorSnackbar() {
+        coroutineScope.launch {
+            scaffoldState.snackbarHostState.showSnackbar(
+                message = "Please fill out the required fields"
+            )
+        }
+    }
+
     fun validate(): Boolean {
         var valid = true
 
-        // TODO: Add validation for each task item
         if (taskIdToEdit != null) {
             if (title.trim().isEmpty()) {
-                titleIsError = true
                 valid = false
             }
         }
@@ -104,11 +113,16 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             dueDateIsError = true
             valid = false
         }
-        if (reminderIndex == -2) valid = false
+        if (reminderIndex == -2) {
+            reminderIsError = true
+            valid = false
+        }
         if (subjectId?.value == null) {
             subjectIsError = true
             valid = false
         }
+
+        if (!valid) showErrorSnackbar()
 
         return valid
     }
@@ -136,7 +150,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     }
     // endregion
 
-    Scaffold(topBar = {
+    Scaffold(scaffoldState = scaffoldState, topBar = {
         AppTopAppBar(navController, true, actions = {
             if (taskIdToEdit == null) {
                 IconButton(onClick = { viewModel.tasks.add(TaskData()) }) {
@@ -159,7 +173,20 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 ).let { viewModel.update(it) }
             } else {
                 val tasks = arrayListOf<Task>()
+                var valid = true
                 viewModel.tasks.forEach {
+                    it.title = it.title.trim()
+                    it.description = it.description.trim()
+
+                    if (it.title.isEmpty()) {
+                        // TODO: Add error indicator for each task item that has an error
+                        valid = false
+                        return@forEach
+                    }
+
+                    // Run the validation for each item but don't continue
+                    if (!valid) return@forEach
+
                     // Override reminder if a different one has been selected
                     val reminder =
                         if (it.reminderIndex == -2 ||
@@ -180,7 +207,8 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         )
                     )
                 }
-                viewModel.insertAll(tasks)
+                if (!valid) showErrorSnackbar()
+                else viewModel.insertAll(tasks)
             }
             navController?.popBackStack()
         }, icon = {
@@ -221,14 +249,12 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         value = title,
                         onValueChange = {
                             title = it
-                            titleIsError = false
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 15.dp),
                         maxLines = 1,
                         label = { Text(stringResource(R.string.add_task_title_label)) },
-                        isError = titleIsError
                     )
                 }
 
@@ -247,7 +273,13 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 }
                 HorizontalSpacer()
 
-                ReminderPicker(dueDate, reminderIndex, reminderStartDate) { index, startDate ->
+                ReminderPicker(
+                    dueDate,
+                    reminderIndex,
+                    reminderStartDate,
+                    reminderIsError
+                ) { index, startDate ->
+                    reminderIsError = false
                     reminderIndex = index
                     reminderStartDate = startDate
                 }
@@ -541,6 +573,7 @@ private fun ReminderPicker(
     dueDate: LocalDate?,
     _reminderIndex: Int = -2,
     _reminderStartDate: LocalDate? = null,
+    error: Boolean = false,
     onReminderPicked: (index: Int, startDate: LocalDate) -> Unit
 ) {
     var reminderIndex by remember { mutableStateOf(_reminderIndex) }
@@ -557,6 +590,7 @@ private fun ReminderPicker(
             stringResource(R.string.add_task_reminder_selector)
         } else stringArrayResource(R.array.reminder_choices)[reminderIndex],
         icon = Icons.Outlined.Notifications,
+        isError = error
     ) {
         pickReminder(context) {
             reminderIndex = it
