@@ -26,9 +26,9 @@
     <string name="add_subject_button">Fach hinzufügen</string>
     <string name="add_subject_dialog_title">Wähle eine Farbe aus</string>
     <string name="move_tasks_positive_button">Verschieben</string>
-    <string name="move_tasks_title">Aufgaben verschieben</string>
-    <string name="move_tasks_description_singular">Eine Aufgabe ist mit diesem Fach verknüpft. Du musst ihn erst zu einem anderen Fach verschieben.</string>
-    <string name="move_tasks_description_plural">%count% Aufgaben sind mit diesem Fach verknüpft. Du musst sie erst zu einem anderen Fach verschieben.</string>
+    <string name="move_tasks_title">Konflikte beheben</string>
+    <string name="move_tasks_description_singular">Eine Aufgabe ist mit diesem Fach verknüpft.</string>
+    <string name="move_tasks_description_plural">%count% Aufgaben sind mit diesem Fach verknüpft.</string>
     <string name="move_tasks_text_field_start_text">Wähle das Ziel-Fach aus</string>
     <string name="add_task_additional_properties">Weitere Eigenschaften</string>
     <string name="date_today">Heute</string>
@@ -54,4 +54,8 @@
     <string name="notification_settings_priority_default">Standard</string>
     <string name="notification_settings_system_options_title">System Einstellungen</string>
     <string name="notification_settings_system_options_subtitle">System Benachrichtigungs-Einstellungen für diese App</string>
+    <string name="move_tasks_delete_tasks_button_singular">Eine Aufgabe löschen</string>
+    <string name="move_tasks_delete_tasks_button_plural">%count% Aufgaben löschen</string>
+    <string name="move_tasks_move_tasks_option">Verschieben:</string>
+    <string name="move_tasks_delete_tasks_option">Oder löschen:</string>
 </resources>

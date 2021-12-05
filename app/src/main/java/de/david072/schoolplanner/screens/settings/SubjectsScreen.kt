@@ -160,6 +160,8 @@ fun MoveTasksAndDeleteSubjectDialog(navController: NavController, subjectId: Int
     var isExpanded by remember { mutableStateOf(false) }
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
 
+    val scope = rememberCoroutineScope()
+
     AlertDialog(
         onDismissRequest = { navController.popBackStack() },
         title = { Text(stringResource(R.string.move_tasks_title)) },
@@ -177,6 +179,11 @@ fun MoveTasksAndDeleteSubjectDialog(navController: NavController, subjectId: Int
                     if (tasksSize <= 1) return@let it
                     it.replace("%count%", tasksSize.toString())
                 })
+
+                Text(
+                    stringResource(R.string.move_tasks_move_tasks_option),
+                    modifier = Modifier.padding(top = 20.dp)
+                )
                 Box(modifier = Modifier.padding(top = 10.dp)) {
                     OutlinedTextField(
                         value = if (selectedText.isEmpty()) stringResource(R.string.move_tasks_text_field_start_text) else selectedText,
@@ -222,10 +229,28 @@ fun MoveTasksAndDeleteSubjectDialog(navController: NavController, subjectId: Int
                         }) { Text(it.name) }
                     }
                 }
+
+                Text(
+                    stringResource(R.string.move_tasks_delete_tasks_option),
+                    modifier = Modifier.padding(top = 20.dp)
+                )
+                Button(onClick = {
+                    scope.launch {
+                        viewModel.deleteTasksAndDeleteSubject()
+                        navController.popBackStack()
+                    }
+                }) {
+                    Text(stringResource(
+                        if (tasksSize > 1) R.string.move_tasks_delete_tasks_button_plural
+                        else R.string.move_tasks_delete_tasks_button_singular
+                    ).let {
+                        if (tasksSize <= 1) return@let it
+                        it.replace("%count%", tasksSize.toString())
+                    })
+                }
             }
         },
         confirmButton = {
-            val scope = rememberCoroutineScope()
             TextButton(onClick = {
                 if (selectedSubjectId == -1) {
                     textFieldIsError = true
@@ -307,10 +332,18 @@ class MigrateTasksDialogViewModel(application: Application) :
 
         // FIXME: Why tf does this work when debugging but not when actually running it???
         //  Too bad...
+        val taskRepository = TaskRepository(getApplication())
         tasks.value.forEach { task ->
             task.subjectId = newSubjectId
-            TaskRepository(getApplication()).update(task)
+            taskRepository.update(task)
         }
+
+        SubjectRepository(getApplication()).delete(subjectId)
+    }
+
+    suspend fun deleteTasksAndDeleteSubject() {
+        val taskRepository = TaskRepository(getApplication())
+        tasks.value.forEach { taskRepository.delete(it) }
 
         SubjectRepository(getApplication()).delete(subjectId)
     }

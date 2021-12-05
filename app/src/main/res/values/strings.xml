@@ -26,9 +26,9 @@
     <string name="add_subject_button">Add Subject</string>
     <string name="add_subject_dialog_title">Pick a color</string>
     <string name="move_tasks_positive_button">Move</string>
-    <string name="move_tasks_title">Move Tasks</string>
-    <string name="move_tasks_description_singular">1 task refers to this subject. You need to move it to another subject first before you can continue.</string>
-    <string name="move_tasks_description_plural">%count% tasks refer to this subject. You need to move them to another subject first before you can continue.</string>
+    <string name="move_tasks_title">Resolve conflicts</string>
+    <string name="move_tasks_description_singular">One task refers to this subject.</string>
+    <string name="move_tasks_description_plural">%count% tasks refer to this subject.</string>
     <string name="move_tasks_text_field_start_text">Select the target subject</string>
     <string name="add_task_additional_properties">Additional properties</string>
     <string name="date_today">Today</string>
@@ -54,4 +54,8 @@
     <string name="notification_settings_priority_default">Default</string>
     <string name="notification_settings_system_options_title">System options</string>
     <string name="notification_settings_system_options_subtitle">System notification settings for this app</string>
+    <string name="move_tasks_delete_tasks_button_singular">Delete one task</string>
+    <string name="move_tasks_delete_tasks_button_plural">Delete %count% tasks</string>
+    <string name="move_tasks_delete_tasks_option">Or delete:</string>
+    <string name="move_tasks_move_tasks_option">Move:</string>
 </resources>
