@@ -173,7 +173,6 @@ fun SelectPreference(
     }
 }
 
-// TODO: Add ripple effect on click
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun DropdownPreference(

@@ -68,7 +68,6 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
 
-                // TODO: Add: On click to go to view task screen, action to mark the task completed
                 val notification = NotificationCompat.Builder(context, channelId)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle("${subject.name}: ${task.title}")
