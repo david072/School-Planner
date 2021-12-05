@@ -16,6 +16,7 @@ import de.david072.schoolplanner.R
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.DropdownPreference
 import de.david072.schoolplanner.ui.SelectPreference
+import de.david072.schoolplanner.util.SettingsKeys
 
 @Preview
 @Composable
@@ -33,7 +34,7 @@ fun NotificationSettings(navController: NavController? = null) {
                 items = notificationHourItems!!,
                 defaultValue = 12,
                 subtitleTemplate = stringResource(R.string.notification_settings_target_hour_subtitle_template),
-                key = "notification_target_hour"
+                key = SettingsKeys.Notifications.notificationTargetHour
             )
 
             DropdownPreference(
@@ -54,7 +55,7 @@ fun NotificationSettings(navController: NavController? = null) {
                     )
                 ),
                 defaultValue = NotificationCompat.PRIORITY_DEFAULT,
-                key = "notification_priority"
+                key = SettingsKeys.Notifications.notificationPriority
             )
         }
     }

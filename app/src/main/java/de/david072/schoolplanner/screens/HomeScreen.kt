@@ -33,7 +33,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowColumn
-import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
@@ -41,6 +40,7 @@ import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
+import de.david072.schoolplanner.util.Utils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate

@@ -1,6 +1,7 @@
-package de.david072.schoolplanner
+package de.david072.schoolplanner.util
 
 import android.content.Context
+import de.david072.schoolplanner.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle

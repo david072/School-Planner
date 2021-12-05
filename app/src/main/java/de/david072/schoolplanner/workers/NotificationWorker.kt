@@ -8,12 +8,14 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.edit
+import androidx.preference.PreferenceManager
 import androidx.work.*
 import de.david072.schoolplanner.MainActivity
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.database.TaskRepository
+import de.david072.schoolplanner.util.SettingsKeys
+import de.david072.schoolplanner.util.Utils
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.util.*
@@ -92,8 +94,10 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
                         )
                     )
                     .apply {
-                        // TODO: Make this a setting too?
-                        priority = NotificationCompat.PRIORITY_HIGH
+                        priority = PreferenceManager.getDefaultSharedPreferences(context).getInt(
+                            SettingsKeys.Notifications.notificationPriority,
+                            NotificationCompat.PRIORITY_DEFAULT
+                        )
                     }
                     .build()
 
@@ -135,9 +139,11 @@ class NotificationWorker(private val context: Context, params: WorkerParameters)
             val currentDate = Calendar.getInstance()
             val dueDate = Calendar.getInstance()
 
-            // Sets execution at around 12:00 AM
-            // TODO: Make this a setting
-            dueDate.set(Calendar.HOUR_OF_DAY, 12)
+            // Sets execution at what was set in the settings by the user, or 12:00 by default
+            val hourOfDay = PreferenceManager.getDefaultSharedPreferences(context)
+                .getInt(SettingsKeys.Notifications.notificationTargetHour, 12)
+
+            dueDate.set(Calendar.HOUR_OF_DAY, hourOfDay)
             dueDate.set(Calendar.MINUTE, 0)
             dueDate.set(Calendar.SECOND, 0)
             if (dueDate.before(currentDate))

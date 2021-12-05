@@ -37,7 +37,6 @@ import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.Utils
 import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Task
@@ -46,6 +45,7 @@ import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
+import de.david072.schoolplanner.util.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
