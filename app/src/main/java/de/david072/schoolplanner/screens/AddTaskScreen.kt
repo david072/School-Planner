@@ -319,6 +319,10 @@ private fun TaskListItem(
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
+    // Sync local variables
+    title = taskData.title
+    description = taskData.description
+
     var isExpanded by remember { mutableStateOf(false) }
     val arrowAngle by animateFloatAsState(
         targetValue = if (isExpanded) 360f else 180f,
