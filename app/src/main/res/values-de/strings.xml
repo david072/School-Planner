@@ -45,4 +45,11 @@
     <string name="notification_channel_name">Aufgaben-Erinnerungen</string>
     <string name="notification_task_due_content_text">%taskTitle% (%subjectName%) ist %dueDateInfo% fällig!</string>
     <string name="notification_mark_completed_action">Als erledigt markieren</string>
+    <string name="notification_settings_title">Benachrichtigungen</string>
+    <string name="notification_settings_target_hour_title">Benachrichtigungs-Stunde</string>
+    <string name="notification_settings_priority_title">Benachrichtigungs-Priorität</string>
+    <string name="notification_settings_target_hour_subtitle_template">Ziel-Stunde: %val%:00</string>
+    <string name="notification_settings_priority_high">Hoch</string>
+    <string name="notification_settings_priority_low">Niedrig</string>
+    <string name="notification_settings_priority_default">Standard</string>
 </resources>

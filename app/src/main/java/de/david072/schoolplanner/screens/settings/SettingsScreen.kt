@@ -26,7 +26,7 @@ fun SettingsScreen(navController: NavController) {
                 onClick = { navController.navigate("settings/subjects") }
             )
             Preference(
-                title = { Text("Notifications") },
+                title = { Text(stringResource(R.string.notification_settings_title)) },
                 icon = { Icon(Icons.Outlined.Notifications, "") },
                 onClick = { navController.navigate("settings/notifications") }
             )

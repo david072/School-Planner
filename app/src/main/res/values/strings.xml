@@ -45,4 +45,11 @@
     <string name="notification_channel_name">Task reminders</string>
     <string name="notification_task_due_content_text">%taskTitle% (%subjectName%) is due %dueDateInfo%!</string>
     <string name="notification_mark_completed_action">Mark as completed</string>
+    <string name="notification_settings_title">Notifications</string>
+    <string name="notification_settings_target_hour_title">Notification hour</string>
+    <string name="notification_settings_priority_title">Notification priority</string>
+    <string name="notification_settings_target_hour_subtitle_template">Target hour: %val%:00</string>
+    <string name="notification_settings_priority_high">High</string>
+    <string name="notification_settings_priority_low">Low</string>
+    <string name="notification_settings_priority_default">Default</string>
 </resources>

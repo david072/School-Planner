@@ -3,6 +3,7 @@ package de.david072.schoolplanner.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,7 +92,7 @@ fun SelectPreference(
     subtitle: @Composable (() -> Unit)? = null,
     subtitleTemplate: String? = null,
     icon: @Composable (() -> Unit)? = null,
-    items: List<String>,
+    items: Map<Int, String>,
     key: String? = null
 ) {
     val context = LocalContext.current
@@ -100,9 +101,16 @@ fun SelectPreference(
     var selectedOption: String? by remember { mutableStateOf(null) }
     var didInitialize by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
+
     if (!didInitialize && subtitle == null) {
-        selectedOption = PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(key, null)
+        val keyStored = PreferenceManager.getDefaultSharedPreferences(context).getInt(key, -1)
+
+        if (keyStored == -1 || !items.containsKey(keyStored))
+            PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
+        else
+            selectedOption = items[keyStored]
+
         didInitialize = true
     }
 
@@ -124,15 +132,17 @@ fun SelectPreference(
             onDismissRequest = { dialogVisible = false },
             title = { title() },
             text = {
-                LazyColumn {
-                    items(items.size) { index ->
-                        val item = items[index]
+                LazyColumn/*(modifier = Modifier.verticalScroll(scrollState))*/ {
+                    val itemKeys = items.keys.toIntArray()
+                    items(itemKeys.size) { index ->
+                        val itemKey = itemKeys[index]
+                        val item = items[itemKey]!!
 
                         val clickHandler = {
                             if (subtitle == null) selectedOption = item
                             if (key != null) {
                                 PreferenceManager.getDefaultSharedPreferences(context).edit {
-                                    putString(key, item)
+                                    putInt(key, itemKey)
                                 }
                             }
                             dialogVisible = false
@@ -166,7 +176,7 @@ fun DropdownPreference(
     subtitle: @Composable (() -> Unit)? = null,
     subtitleTemplate: String? = null,
     icon: @Composable (() -> Unit)? = null,
-    items: List<String>,
+    items: Map<Int, String>,
     key: String? = null
 ) {
     val context = LocalContext.current
@@ -176,8 +186,13 @@ fun DropdownPreference(
     var didInitialize by remember { mutableStateOf(false) }
 
     if (!didInitialize && subtitle == null) {
-        selectedOption = PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(key, null)
+        val keyStored = PreferenceManager.getDefaultSharedPreferences(context).getInt(key, -123)
+
+        if (keyStored == -123 || !items.containsKey(keyStored))
+            PreferenceManager.getDefaultSharedPreferences(context).edit { remove(key) }
+        else
+            selectedOption = items[keyStored]
+
         didInitialize = true
     }
 
@@ -196,12 +211,12 @@ fun DropdownPreference(
         }
 
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            items.forEach { item ->
+            items.forEach { (itemKey, item) ->
                 DropdownMenuItem(onClick = {
                     if (subtitle == null) selectedOption = item
                     if (key != null) {
                         PreferenceManager.getDefaultSharedPreferences(context).edit {
-                            putString(key, item)
+                            putInt(key, itemKey)
                         }
                     }
                     expanded = false
