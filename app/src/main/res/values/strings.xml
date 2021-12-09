@@ -58,4 +58,5 @@
     <string name="move_tasks_delete_tasks_button_plural">Delete %count% tasks</string>
     <string name="move_tasks_delete_tasks_option">Or delete:</string>
     <string name="move_tasks_move_tasks_option">Move:</string>
+    <string name="add_task_fields_missing_error">Please fill out the required fields</string>
 </resources>

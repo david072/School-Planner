@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -67,149 +67,114 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
     if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit)
     val taskToEdit = viewModel.taskToEdit.collectAsState()
 
+    val parentTaskData by remember { mutableStateOf(TaskData()) }
+    val taskDatas = remember { mutableStateListOf(TaskData()) }
+
     var didSetValues by remember { mutableStateOf(false) }
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-
-    var dueDate: LocalDate? by remember { mutableStateOf(null) }
-    var dueDateIsError by remember { mutableStateOf(false) }
-    var reminderIndex by remember { mutableStateOf(-2) }
-    var reminderStartDate: LocalDate? by remember { mutableStateOf(null) }
-    var reminderIsError by remember { mutableStateOf(false) }
-
-    val subjectId = navController?.currentBackStackEntry
+    var subjectName: String? by remember { mutableStateOf(null) }
+    val subjectIdLiveData = navController?.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<Int>("subject_id")
-        // Modify the value the first time if we're editing
-        ?.apply {
-            if (taskToEdit.value != null && !didSetValues) value =
-                taskToEdit.value!!.subjectId
+
+    val subjectIdObserver = Observer<Int> {
+        parentTaskData.subjectId.apply setSubjectId@{
+            value = value.copy(value = it, isError = false)
         }
-        ?.observeAsState()
-    var subjectIsError by remember { mutableStateOf(false) }
+        subjectName = null
+    }
+
+    LaunchedEffect(Unit) {
+        subjectIdLiveData?.observeForever(subjectIdObserver)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { subjectIdLiveData?.removeObserver(subjectIdObserver) }
+    }
+
+    if (subjectName == null && parentTaskData.subjectId.value.value != null) {
+        val subjectQueryState =
+            SubjectRepository(context).findById(parentTaskData.subjectId.value.value!!)
+                .collectAsState(initial = null)
+        if (subjectQueryState.value != null) subjectName =
+            subjectQueryState.value!!.name
+    }
 
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
-    // region Helper functions (showErrorSnackbar(), validate(), evalReminderStartDate())
+    // TODO: Remove this function and add a more visible error indicator on the text fields,
+    //  at best with a message
     fun showErrorSnackbar() {
         coroutineScope.launch {
             scaffoldState.snackbarHostState.showSnackbar(
-                message = "Please fill out the required fields"
+                message = context.getString(R.string.add_task_fields_missing_error)
             )
         }
     }
 
-    fun validate(): Boolean {
-        var valid = true
-
-        if (taskIdToEdit != null) {
-            if (title.trim().isEmpty()) {
-                valid = false
-            }
-        }
-        if (dueDate == null) {
-            dueDateIsError = true
-            valid = false
-        }
-        if (reminderIndex == -2) {
-            reminderIsError = true
-            valid = false
-        }
-        if (subjectId?.value == null) {
-            subjectIsError = true
-            valid = false
-        }
-
-        if (!valid) showErrorSnackbar()
-
-        return valid
-    }
-
-    fun evalReminderStartDate(index: Int = reminderIndex): LocalDate? {
-        if (index == -2) return null
-
-        if (index == 0) {
-            reminderStartDate = dueDate
-            return dueDate
-        }
-
-        val daysDifference = when (index) {
-            in 0..4 -> index
-            5 -> 7
-            6 -> 14
-            else -> -1
-        }.toLong()
-
-        reminderStartDate =
-            if (dueDate != null) dueDate!!.minusDays(daysDifference) else LocalDate.now()
-                .minusDays(daysDifference)
-
-        return reminderStartDate
-    }
-    // endregion
-
     Scaffold(scaffoldState = scaffoldState, topBar = {
         AppTopAppBar(navController, true, actions = {
             if (taskIdToEdit == null) {
-                IconButton(onClick = { viewModel.tasks.add(TaskData()) }) {
+                IconButton(onClick = { taskDatas.add(TaskData()) }) {
                     Icon(Icons.Filled.Add, "")
                 }
             }
         })
     }, floatingActionButton = {
         ExtendedFloatingActionButton(onClick = {
-            if (!validate()) return@ExtendedFloatingActionButton
+            var failed = false
+            if (!parentTaskData.validate(true))
+                failed = true
+
             if (taskToEdit.value != null) {
-                Task(
-                    uid = taskToEdit.value!!.uid,
-                    title = title,
-                    dueDate = dueDate!!,
-                    reminder = reminderStartDate!!,
-                    subjectId = subjectId!!.value!!,
-                    description = description,
-                    completed = taskToEdit.value!!.completed
-                ).let { viewModel.update(it) }
+                if (!failed) {
+                    Task(
+                        uid = taskToEdit.value!!.uid,
+                        title = parentTaskData.title.value.value,
+                        dueDate = parentTaskData.dueDate.value.value!!,
+                        reminder = parentTaskData.getReminderStartDate()!!,
+                        subjectId = parentTaskData.subjectId.value.value!!,
+                        description = parentTaskData.description.value.value,
+                        completed = taskToEdit.value!!.completed
+                    ).let { viewModel.update(it) }
+                }
             } else {
                 val tasks = arrayListOf<Task>()
-                var valid = true
-                viewModel.tasks.forEach {
-                    it.title = it.title.trim()
-                    it.description = it.description.trim()
-
-                    if (it.title.isEmpty()) {
-                        // TODO: Add error indicator for each task item that has an error
-                        valid = false
+                taskDatas.forEach {
+                    if (!it.validate() || failed) {
+                        if (!failed) failed = true
                         return@forEach
                     }
 
-                    // Run the validation for each item but don't continue
-                    if (!valid) return@forEach
-
-                    // Override reminder if a different one has been selected
                     val reminder =
-                        if (it.reminderIndex == -2 ||
-                            it.reminderIndex == reminderIndex
-                        ) reminderStartDate!!
-                        else evalReminderStartDate(it.reminderIndex)!!
+                        if (it.reminderIndex.value.value == -2 ||
+                            it.reminderIndex.value.value == parentTaskData.reminderIndex.value.value
+                        ) parentTaskData.getReminderStartDate()!!
+                        else it.getReminderStartDate(parentTaskData.dueDate.value.value)!!
 
-                    val taskSubjectId = it.subjectId ?: subjectId?.value!!
-
-                    tasks.add(
-                        Task(
-                            title = it.title,
-                            dueDate = dueDate!!,
-                            reminder = reminder,
-                            subjectId = taskSubjectId,
-                            description = it.description,
-                            completed = false
-                        )
+                    tasks += Task(
+                        title = it.title.value.value,
+                        dueDate = parentTaskData.dueDate.value.value!!,
+                        reminder = reminder,
+                        subjectId = it.subjectId.value.value
+                            ?: parentTaskData.subjectId.value.value!!,
+                        description = it.description.value.value,
+                        completed = false
                     )
                 }
-                if (!valid) showErrorSnackbar()
-                else viewModel.insertAll(tasks)
+
+                if (!failed) {
+                    if (tasks.isEmpty()) return@ExtendedFloatingActionButton
+                    viewModel.insertAll(tasks)
+                }
             }
+
+            if (failed) {
+                showErrorSnackbar()
+                return@ExtendedFloatingActionButton
+            }
+
             navController?.popBackStack()
         }, icon = {
             Icon(
@@ -231,11 +196,17 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             // as we need to allow that changes are made to this for editing
             if (taskToEdit.value != null && !didSetValues) {
                 val task = taskToEdit.value!!
-                title = task.title
-                description = task.description ?: ""
-                dueDate = task.dueDate
-                reminderIndex = Utils.getReminderIndex(task.dueDate, task.reminder)
-                reminderStartDate = task.reminder
+                parentTaskData.apply {
+                    title.value = title.value.copy(value = task.title)
+                    description.value = description.value.copy(value = task.description ?: "")
+                    dueDate.value = dueDate.value.copy(value = task.dueDate)
+                    reminderIndex.value = reminderIndex.value.copy(
+                        value = Utils.getReminderIndex(
+                            task.dueDate,
+                            task.reminder
+                        )
+                    )
+                }
                 didSetValues = true
             }
 
@@ -246,9 +217,11 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             ) {
                 if (taskIdToEdit != null) {
                     TextField(
-                        value = title,
+                        value = parentTaskData.title.value.value,
                         onValueChange = {
-                            title = it
+                            parentTaskData.title.apply {
+                                value = value.copy(value = it)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -259,52 +232,46 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                 }
 
                 HorizontalButton(
-                    text = if (dueDate == null) stringResource(R.string.add_task_due_date_selector) else dueDate!!.format(
+                    text = if (parentTaskData.dueDate.value.value == null)
+                        stringResource(R.string.add_task_due_date_selector)
+                    else parentTaskData.dueDate.value.value!!.format(
                         DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
                     ),
                     icon = Icons.Outlined.Event,
-                    isError = dueDateIsError
+                    end = { if (parentTaskData.dueDate.value.isError) ErrorIcon() }
                 ) {
-                    pickDate(context, dueDate) {
-                        dueDate = it
-                        dueDateIsError = false
-                        evalReminderStartDate()
+                    pickDate(context, parentTaskData.dueDate.value.value) {
+                        parentTaskData.dueDate.apply {
+                            value = value.copy(value = it, isError = false)
+                        }
                     }
                 }
                 HorizontalSpacer()
 
                 ReminderPicker(
-                    dueDate,
-                    reminderIndex,
-                    reminderStartDate,
-                    reminderIsError
-                ) { index, startDate ->
-                    reminderIsError = false
-                    reminderIndex = index
-                    reminderStartDate = startDate
+                    parentTaskData.reminderIndex.value.value,
+                    parentTaskData.getReminderStartDate(),
+                    end = { if (parentTaskData.reminderIndex.value.isError) ErrorIcon() }
+                ) { index ->
+                    parentTaskData.apply {
+                        reminderIndex.value =
+                            reminderIndex.value.copy(value = index, isError = false)
+                    }
                 }
                 HorizontalSpacer()
 
-                var subjectText = stringResource(R.string.add_task_subject_selector)
-                if (subjectId?.value != null) {
-                    subjectIsError = false
-
-                    val subjectQueryState = SubjectRepository(context).findById(subjectId.value!!)
-                        .collectAsState(initial = null)
-                    if (subjectQueryState.value != null) subjectText =
-                        subjectQueryState.value!!.name
-                }
-
                 HorizontalButton(
-                    text = subjectText,
+                    text = subjectName ?: stringResource(R.string.add_task_subject_selector),
                     icon = Icons.Outlined.School,
-                    isError = subjectIsError
+                    end = { if (parentTaskData.subjectId.value.isError) ErrorIcon() }
                 ) { navController?.navigate("subject_select_dialog") }
 
                 if (taskIdToEdit != null) {
                     TextField(
-                        value = description,
-                        onValueChange = { description = it },
+                        value = parentTaskData.description.value.value,
+                        onValueChange = {
+                            parentTaskData.description.apply { value = value.copy(value = it) }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 15.dp),
@@ -314,17 +281,14 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
 
                 if (taskIdToEdit == null) {
                     Box(modifier = Modifier.padding(top = 20.dp)) // Spacer
-                    repeat(viewModel.tasks.size) { index ->
+                    repeat(taskDatas.size) { index ->
                         TaskListItem(
                             navController,
                             index,
-                            viewModel.tasks[index],
-                            dueDate,
-                            viewModel,
-                            index != 0, // as long as it's not the first one
-                            index != viewModel.tasks.size - 1, // as long as it's not the last one
-                            viewModel.tasks.size > 1
-                        )
+                            taskDatas.size,
+                            taskDatas[index],
+                            parentTaskData.dueDate.value.value ?: LocalDate.now()
+                        ) { taskDatas.removeAt(index) }
                     }
                 }
             }
@@ -336,24 +300,40 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
 private fun TaskListItem(
     navController: NavController?,
     index: Int,
+    taskDatasSize: Int,
     taskData: TaskData,
-    dueDate: LocalDate?,
-    viewModel: AddTaskViewModel,
-    hasItemAbove: Boolean = false,
-    hasItemBelow: Boolean = false,
-    showProperties: Boolean = true,
+    dueDate: LocalDate,
+    onDeleted: () -> Unit,
 ) {
-    val subjectId = navController?.currentBackStackEntry
+    var subjectName: String? by remember { mutableStateOf(null) }
+    val subjectIdLiveData = navController?.currentBackStackEntry
         ?.savedStateHandle
         ?.getLiveData<Int>("subject_id_$index")
-        ?.observeAsState()
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    val subjectIdObserver = Observer<Int> {
+        taskData.subjectId.apply {
+            value = value.copy(value = it, isError = false)
+        }
+    }
 
-    // Sync local variables
-    title = taskData.title
-    description = taskData.description
+    LaunchedEffect(Unit) {
+        subjectIdLiveData?.observeForever(subjectIdObserver)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { subjectIdLiveData?.removeObserver(subjectIdObserver) }
+    }
+
+    if (taskData.subjectId.value.value != null) {
+        val subjectQueryState =
+            SubjectRepository(LocalContext.current).findById(taskData.subjectId.value.value!!)
+                .collectAsState(initial = null)
+        if (subjectQueryState.value != null) subjectName =
+            subjectQueryState.value!!.name
+    }
+
+    var title by remember { taskData.title }
+    var description by remember { taskData.description }
 
     var isExpanded by remember { mutableStateOf(false) }
     val arrowAngle by animateFloatAsState(
@@ -364,8 +344,8 @@ private fun TaskListItem(
         )
     )
 
-    val topCornerRadius = (if (hasItemAbove) 0 else 4).dp
-    val bottomCornerRadius = (if (hasItemBelow) 0 else 4).dp
+    val topCornerRadius = (if (index != 0) 0 else 4).dp
+    val bottomCornerRadius = (if (index != taskDatasSize - 1) 0 else 4).dp
 
     Column(
         modifier = Modifier
@@ -385,17 +365,21 @@ private fun TaskListItem(
             .padding(bottom = 10.dp)
             .animateContentSize()
     ) {
-        IconButton(
-            onClick = { viewModel.tasks.remove(taskData) },
-            enabled = viewModel.tasks.size > 1, // => The user can't have zero TaskListItems
-            modifier = Modifier.align(Alignment.End)
-        ) { Icon(Icons.Filled.Remove, "") }
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (taskData.title.value.isError || taskData.reminderIndex.value.isError || taskData.subjectId.value.isError) {
+                ErrorIcon(modifier = Modifier.padding(start = 10.dp))
+            }
+
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                IconButton(
+                    onClick = { onDeleted() },
+                    enabled = taskDatasSize > 1, // => The user can't have zero TaskListItems
+                ) { Icon(Icons.Filled.Remove, "") }
+            }
+        }
         TextField(
-            value = title,
-            onValueChange = {
-                title = it
-                taskData.title = it
-            },
+            value = title.value,
+            onValueChange = { title = TaskAttribute(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 10.dp, end = 10.dp, start = 10.dp),
@@ -404,18 +388,15 @@ private fun TaskListItem(
         )
 
         TextField(
-            value = description,
-            onValueChange = {
-                description = it
-                taskData.description = it
-            },
+            value = description.value,
+            onValueChange = { description = TaskAttribute(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(end = 10.dp, start = 10.dp),
             label = { Text(stringResource(R.string.add_task_description_label)) },
         )
 
-        if (showProperties) {
+        if (taskDatasSize > 1) {
             HorizontalSpacer(padding = PaddingValues(top = 20.dp, bottom = 13.dp))
 
             Row(modifier = Modifier
@@ -440,25 +421,38 @@ private fun TaskListItem(
             Box(modifier = Modifier.animateContentSize()) {
                 if (isExpanded) {
                     Column(modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-                        ReminderPicker(dueDate) { index, _ ->
-                            taskData.reminderIndex = index
-                        }
+                        ReminderPicker(
+                            taskData.reminderIndex.value.value,
+                            taskData.getReminderStartDate(dueDate),
+                            end = {
+                                if (taskData.reminderIndex.value.value == -2) return@ReminderPicker
 
-                        var subjectText = stringResource(R.string.add_task_subject_selector)
-                        if (subjectId?.value != null) {
-                            val subjectQueryState = SubjectRepository(LocalContext.current)
-                                .findById(subjectId.value!!)
-                                .collectAsState(initial = null)
-
-                            if (subjectQueryState.value != null) subjectText =
-                                subjectQueryState.value!!.name
-
-                            taskData.subjectId = subjectId.value!!
+                                IconButton(onClick = {
+                                    taskData.reminderIndex.apply { value = value.copy(value = -2) }
+                                }) {
+                                    Icon(Icons.Outlined.Close, "", tint = Color.Red)
+                                }
+                            }) { index ->
+                            taskData.reminderIndex.value =
+                                taskData.reminderIndex.value.copy(value = index)
                         }
 
                         HorizontalButton(
-                            text = subjectText,
+                            text = subjectName
+                                ?: stringResource(R.string.add_task_subject_selector),
                             icon = Icons.Outlined.School,
+                            end = {
+                                if (taskData.subjectId.value.value != null) {
+                                    IconButton(onClick = {
+                                        taskData.subjectId.apply {
+                                            value = value.copy(value = null)
+                                        }
+                                        subjectName = null
+                                    }) {
+                                        Icon(Icons.Outlined.Close, "", tint = Color.Red)
+                                    }
+                                }
+                            }
                         ) { navController?.navigate("subject_select_dialog?id=$index") }
                     }
                 }
@@ -466,15 +460,19 @@ private fun TaskListItem(
         }
         // Collapse the properties field, since it shouldn't be opened when it becomes
         // visible again
-        else isExpanded = false
+        else {
+            taskData.apply {
+                reminderIndex.value = reminderIndex.value.copy(value = -2)
+                subjectId.value = subjectId.value.copy(value = null)
+            }
+            isExpanded = false
+        }
     }
 }
 
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
     val taskToEdit: StateFlow<Task?> = _taskToEdit
-
-    val tasks = mutableStateListOf(TaskData())
 
     fun setTaskId(taskId: Int) {
         viewModelScope.launch {
@@ -496,10 +494,63 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
 }
 
 data class TaskData(
-    var title: String = "",
-    var description: String = "",
-    var reminderIndex: Int = -2,
-    var subjectId: Int? = null
+    var title: MutableState<TaskAttribute<String>> = mutableStateOf(TaskAttribute("")),
+    var description: MutableState<TaskAttribute<String>> = mutableStateOf(TaskAttribute("")),
+    var dueDate: MutableState<TaskAttribute<LocalDate?>> = mutableStateOf(TaskAttribute(null)),
+    var reminderIndex: MutableState<TaskAttribute<Int>> = mutableStateOf(TaskAttribute(-2)),
+    var subjectId: MutableState<TaskAttribute<Int?>> = mutableStateOf(TaskAttribute(null))
+) {
+    fun validate(isParentData: Boolean = false): Boolean {
+        var isValid = true
+        val trimmedTitle = title.value.value.trim()
+
+        if (!isParentData) {
+            if (trimmedTitle.isEmpty()) {
+                title.value = title.value.copy(trimmedTitle, true)
+                isValid = false
+            }
+        }
+
+        if (isParentData) {
+            if (reminderIndex.value.value == -2) {
+                reminderIndex.value = reminderIndex.value.copy(isError = true)
+                isValid = false
+            }
+            if (dueDate.value.value == null) {
+                dueDate.value = dueDate.value.copy(isError = true)
+                isValid = false
+            }
+            if (subjectId.value.value == null) {
+                subjectId.value = subjectId.value.copy(isError = true)
+                isValid = false
+            }
+        }
+
+        return isValid
+    }
+
+    fun getReminderStartDate(_dueDate: LocalDate? = null): LocalDate? {
+        val index = reminderIndex.value.value
+        val dueDate = _dueDate ?: dueDate.value.value
+
+        if (index == -2) return null
+        if (index == 0) return dueDate
+
+        val daysDifference = when (index) {
+            in 0..4 -> index
+            5 -> 7
+            6 -> 14
+            else -> -1
+        }.toLong()
+
+        return if (dueDate != null) dueDate.minusDays(daysDifference) else LocalDate.now()
+            .minusDays(daysDifference)
+    }
+}
+
+data class TaskAttribute<T>(
+    val value: T,
+    val isError: Boolean = false
 )
 
 private fun pickDate(
@@ -570,49 +621,35 @@ private fun pickReminder(context: Context, onSelected: (selectedIndex: Int) -> U
 
 @Composable
 private fun ReminderPicker(
-    dueDate: LocalDate?,
-    _reminderIndex: Int = -2,
-    _reminderStartDate: LocalDate? = null,
-    error: Boolean = false,
-    onReminderPicked: (index: Int, startDate: LocalDate) -> Unit
+    reminderIndex: Int,
+    reminderStartDate: LocalDate?,
+    end: @Composable (BoxScope.() -> Unit)? = null,
+    onReminderPicked: (index: Int) -> Unit
 ) {
-    var reminderIndex by remember { mutableStateOf(_reminderIndex) }
-    var reminderStartDate: LocalDate? by remember { mutableStateOf(_reminderStartDate) }
-
-    // These values only update on the 3rd recomposition or so
-    if (_reminderIndex != -2) reminderIndex = _reminderIndex
-    if (_reminderStartDate != null) reminderStartDate = _reminderStartDate
-
     val context = LocalContext.current
+
+    println("ReminderPicker reminderIndex: $reminderIndex")
 
     HorizontalButton(
         text = if (reminderStartDate == null || reminderIndex == -2) {
             stringResource(R.string.add_task_reminder_selector)
         } else stringArrayResource(R.array.reminder_choices)[reminderIndex],
         icon = Icons.Outlined.Notifications,
-        isError = error
+        end = end
     ) {
         pickReminder(context) {
-            reminderIndex = it
-
-            fun dueDate() = dueDate ?: LocalDate.now()
-
-            reminderStartDate = if (reminderIndex == 0)
-                dueDate()
-            else {
-                val daysDifference = when (reminderIndex) {
-                    in 0..4 -> reminderIndex
-                    5 -> 7
-                    6 -> 14
-                    else -> -1
-                }.toLong()
-                dueDate().minusDays(daysDifference)
-            }
-
-            onReminderPicked(reminderIndex, reminderStartDate!!)
+            onReminderPicked(it)
         }
     }
 }
+
+@Composable
+private fun ErrorIcon(modifier: Modifier = Modifier) = Icon(
+    Icons.Outlined.Error,
+    "",
+    tint = Color.Red,
+    modifier = modifier
+)
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)

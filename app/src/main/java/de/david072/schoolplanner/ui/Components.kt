@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Error
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +42,7 @@ fun HorizontalButton(
     text: String,
     icon: ImageVector,
     contentDescription: String = "",
-    isError: Boolean = false,
+    end: @Composable (BoxScope.() -> Unit)? = null,
     onClick: (() -> Unit)? = null
 ) {
     Row(
@@ -60,15 +59,14 @@ fun HorizontalButton(
             style = MaterialTheme.typography.subtitle1
         )
 
-        if (isError) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    Icons.Filled.Error,
-                    "",
-                    tint = Color.Red,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
-            }
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            end?.invoke(this)
+            /*Icon(
+                Icons.Filled.Error,
+                "",
+                tint = Color.Red,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )*/
         }
     }
 }
