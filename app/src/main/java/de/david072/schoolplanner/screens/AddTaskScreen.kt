@@ -4,7 +4,8 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Parcel
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -46,6 +48,7 @@ import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import de.david072.schoolplanner.util.Utils
+import de.david072.schoolplanner.util.swipeToDelete
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -347,9 +350,15 @@ private fun TaskListItem(
     val topCornerRadius = (if (index != 0) 0 else 4).dp
     val bottomCornerRadius = (if (index != taskDatasSize - 1) 0 else 4).dp
 
+    val offsetX = remember { Animatable(0f) }
     Column(
         modifier = Modifier
             .padding(bottom = 2.dp)
+            .swipeToDelete(
+                offsetX,
+                (LocalConfiguration.current.screenWidthDp * 3).toFloat(),
+                enabled = taskDatasSize > 1
+            ) { onDeleted() }
             .clip(
                 RoundedCornerShape(
                     topStart = topCornerRadius,
@@ -627,8 +636,6 @@ private fun ReminderPicker(
     onReminderPicked: (index: Int) -> Unit
 ) {
     val context = LocalContext.current
-
-    println("ReminderPicker reminderIndex: $reminderIndex")
 
     HorizontalButton(
         text = if (reminderStartDate == null || reminderIndex == -2) {
