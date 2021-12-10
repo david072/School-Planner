@@ -39,9 +39,11 @@ import com.google.android.material.datepicker.CalendarConstraints
 import com.google.android.material.datepicker.MaterialDatePicker
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.SubjectRepository
-import de.david072.schoolplanner.database.TaskRepository
+import de.david072.schoolplanner.database.entities.Exam
 import de.david072.schoolplanner.database.entities.Task
+import de.david072.schoolplanner.database.repositories.ExamRepository
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
@@ -63,7 +65,11 @@ import java.time.format.FormatStyle
 import java.util.*
 
 @Composable
-fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
+fun AddTaskScreen(
+    navController: NavController?,
+    createTest: Boolean = false,
+    taskIdToEdit: Int? = null
+) {
     val context = LocalContext.current
     val viewModel = viewModel<AddTaskViewModel>()
 
@@ -132,18 +138,22 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
 
             if (taskToEdit.value != null) {
                 if (!failed) {
-                    Task(
-                        uid = taskToEdit.value!!.uid,
-                        title = parentTaskData.title.value.value,
-                        dueDate = parentTaskData.dueDate.value.value!!,
-                        reminder = parentTaskData.getReminderStartDate()!!,
-                        subjectId = parentTaskData.subjectId.value.value!!,
-                        description = parentTaskData.description.value.value,
-                        completed = taskToEdit.value!!.completed
-                    ).let { viewModel.update(it) }
+                    if (!createTest) {
+                        Task(
+                            uid = taskToEdit.value!!.uid,
+                            title = parentTaskData.title.value.value,
+                            dueDate = parentTaskData.dueDate.value.value!!,
+                            reminder = parentTaskData.getReminderStartDate()!!,
+                            subjectId = parentTaskData.subjectId.value.value!!,
+                            description = parentTaskData.description.value.value,
+                            completed = taskToEdit.value!!.completed
+                        ).let { viewModel.updateTask(it) }
+                    } else {
+                        TODO()
+                    }
                 }
             } else {
-                val tasks = arrayListOf<Task>()
+                val result = arrayListOf<Any>()
                 taskDatas.forEach {
                     if (!it.validate() || failed) {
                         if (!failed) failed = true
@@ -156,7 +166,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         ) parentTaskData.getReminderStartDate()!!
                         else it.getReminderStartDate(parentTaskData.dueDate.value.value)!!
 
-                    tasks += Task(
+                    result += if (!createTest) Task(
                         title = it.title.value.value,
                         dueDate = parentTaskData.dueDate.value.value!!,
                         reminder = reminder,
@@ -165,11 +175,21 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
                         description = it.description.value.value,
                         completed = false
                     )
+                    else Exam(
+                        title = it.title.value.value,
+                        dueDate = parentTaskData.dueDate.value.value!!,
+                        reminder = reminder,
+                        subjectId = it.subjectId.value.value
+                            ?: parentTaskData.subjectId.value.value!!,
+                        description = it.description.value.value,
+                    )
                 }
 
                 if (!failed) {
-                    if (tasks.isEmpty()) return@ExtendedFloatingActionButton
-                    viewModel.insertAll(tasks)
+                    if (result.isEmpty()) return@ExtendedFloatingActionButton
+
+                    if (!createTest) viewModel.insertAllTasks(result as ArrayList<Task>)
+                    else viewModel.insertAllExams(result as ArrayList<Exam>)
                 }
             }
 
@@ -187,7 +207,7 @@ fun AddTaskScreen(navController: NavController?, taskIdToEdit: Int? = null) {
             )
         }, text = {
             Text(
-                if (taskToEdit.value == null) stringResource(R.string.add_task_button)
+                if (taskToEdit.value == null) stringResource(if (!createTest) R.string.add_task_button else R.string.add_test_button)
                 else stringResource(R.string.general_save)
             )
         }, backgroundColor = MaterialTheme.colors.primary)
@@ -489,15 +509,27 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun insertAll(task: List<Task>) {
+    fun insertAllTasks(tasks: List<Task>) {
         viewModelScope.launch(Dispatchers.IO) {
-            TaskRepository(getApplication()).insertAll(*task.toTypedArray())
+            TaskRepository(getApplication()).insertAll(*tasks.toTypedArray())
         }
     }
 
-    fun update(task: Task) {
+    fun insertAllExams(exams: List<Exam>) {
+        viewModelScope.launch {
+            ExamRepository(getApplication()).insertAll(*exams.toTypedArray())
+        }
+    }
+
+    fun updateTask(task: Task) {
         viewModelScope.launch {
             TaskRepository(getApplication()).update(task)
+        }
+    }
+
+    fun updateExam(exam: Exam) {
+        viewModelScope.launch {
+            ExamRepository(getApplication()).update(exam)
         }
     }
 }

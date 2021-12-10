@@ -17,10 +17,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.SubjectRepository
-import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer

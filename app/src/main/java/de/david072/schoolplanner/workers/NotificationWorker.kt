@@ -12,8 +12,8 @@ import androidx.preference.PreferenceManager
 import androidx.work.*
 import de.david072.schoolplanner.MainActivity
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.SubjectRepository
-import de.david072.schoolplanner.database.TaskRepository
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.util.SettingsKeys
 import de.david072.schoolplanner.util.Utils
 import kotlinx.coroutines.flow.first

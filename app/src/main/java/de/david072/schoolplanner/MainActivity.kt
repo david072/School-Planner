@@ -29,9 +29,10 @@ class MainActivity : AppCompatActivity() {
 
                 NavHost(navController = navController, startDestination = "home_screen") {
                     composable("home_screen") { HomeScreen(navController) }
-                    composable("add_task") { AddTaskScreen(navController) }
+                    composable("add_task") { AddTaskScreen(navController, false) }
+                    composable("add_test") { AddTaskScreen(navController, true) }
                     composable("edit_task/{taskId}", arguments = listOf(taskIdArgument)) {
-                        AddTaskScreen(navController, it.arguments?.getInt("taskId"))
+                        AddTaskScreen(navController, false, it.arguments?.getInt("taskId"))
                     }
                     composable("view_task/{taskId}", arguments = listOf(taskIdArgument)) {
                         ViewTaskScreen(navController, it.arguments!!.getInt("taskId"))

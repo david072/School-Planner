@@ -59,4 +59,5 @@
     <string name="move_tasks_move_tasks_option">Verschieben:</string>
     <string name="move_tasks_delete_tasks_option">Oder löschen:</string>
     <string name="add_task_fields_missing_error">Bitte füllen Sie die erforderlichen Felder aus</string>
+    <string name="add_test_button">Klassenarbeit hinzufügen</string>
 </resources>

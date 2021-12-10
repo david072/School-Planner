@@ -27,10 +27,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.SubjectRepository
-import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

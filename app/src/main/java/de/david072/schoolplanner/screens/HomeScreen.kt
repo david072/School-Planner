@@ -2,7 +2,7 @@ package de.david072.schoolplanner.screens
 
 import android.app.Application
 import android.content.res.Configuration
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -15,8 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Class
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Task
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,10 +36,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.accompanist.flowlayout.FlowColumn
-import de.david072.schoolplanner.database.SubjectRepository
-import de.david072.schoolplanner.database.TaskRepository
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
 import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HomeScreen(navController: NavController?) {
     Scaffold(topBar = {
@@ -54,11 +58,59 @@ fun HomeScreen(navController: NavController?) {
             }
         })
     }, floatingActionButton = {
-        FloatingActionButton(
-            onClick = { navController?.navigate("add_task") },
-            backgroundColor = MaterialTheme.colors.primary
-        ) {
-            Icon(Icons.Filled.Add, "")
+        var isExpanded by remember { mutableStateOf(false) }
+
+        val angle by animateFloatAsState(
+            targetValue = if (isExpanded) 135f else 0f,
+            animationSpec = tween(
+                durationMillis = 300,
+                easing = LinearOutSlowInEasing
+            )
+        )
+
+        val color by animateColorAsState(
+            targetValue = if (isExpanded) MaterialTheme.colors.error else MaterialTheme.colors.primary
+        )
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val animation = @Composable { content: @Composable AnimatedVisibilityScope.() -> Unit ->
+                AnimatedVisibility(
+                    visible = isExpanded,
+                    enter = fadeIn() + slideInVertically({ it / 2 }),
+                    exit = fadeOut() + slideOutVertically({ it / 2 }),
+                    content = content
+                )
+            }
+
+            animation {
+                FloatingActionButton(
+                    onClick = { navController?.navigate("add_test") },
+                    backgroundColor = MaterialTheme.colors.primary,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Outlined.Class, "")
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            animation {
+                FloatingActionButton(
+                    onClick = { navController?.navigate("add_task") },
+                    backgroundColor = MaterialTheme.colors.primary,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Outlined.Task, "")
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            FloatingActionButton(
+                onClick = { isExpanded = !isExpanded },
+                backgroundColor = color,
+                modifier = Modifier
+                    .rotate(angle)
+                    .onSizeChanged { println("Size: $it") }
+            ) {
+                Icon(Icons.Filled.Add, "", tint = Color.Black)
+            }
         }
     }) {
         val viewModel = viewModel<HomeScreenViewModel>()

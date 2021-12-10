@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import de.david072.schoolplanner.database.SubjectRepository
+import de.david072.schoolplanner.database.repositories.SubjectRepository
 import de.david072.schoolplanner.ui.HorizontalSpacer
 
 @Composable

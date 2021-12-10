@@ -1,7 +1,8 @@
-package de.david072.schoolplanner.database
+package de.david072.schoolplanner.database.repositories
 
 import android.app.Application
 import android.content.Context
+import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.daos.SubjectDao
 import de.david072.schoolplanner.database.entities.Subject
 import kotlinx.coroutines.flow.Flow

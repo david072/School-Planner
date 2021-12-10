@@ -22,8 +22,8 @@ import androidx.navigation.NavController
 import com.godaddy.android.colorpicker.ClassicColorPicker
 import com.godaddy.android.colorpicker.HsvColor
 import de.david072.schoolplanner.R
-import de.david072.schoolplanner.database.SubjectRepository
 import de.david072.schoolplanner.database.entities.Subject
+import de.david072.schoolplanner.database.repositories.SubjectRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
