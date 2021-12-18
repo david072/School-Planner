@@ -72,11 +72,14 @@ fun HorizontalButton(
 }
 
 @Composable
-fun HorizontalSpacer(padding: PaddingValues = PaddingValues(all = 0.dp)) {
+fun HorizontalSpacer(
+    padding: PaddingValues = PaddingValues(all = 0.dp),
+    background: Color = Color.Gray
+) {
     Spacer(
         modifier = Modifier
             .padding(padding)
-            .background(Color.Gray)
+            .background(background)
             .height(1.dp)
             .fillMaxWidth()
     )

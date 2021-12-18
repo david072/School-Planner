@@ -5,6 +5,7 @@ import android.content.Context
 import de.david072.schoolplanner.database.AppDatabase
 import de.david072.schoolplanner.database.daos.ExamDao
 import de.david072.schoolplanner.database.entities.Exam
+import kotlinx.coroutines.flow.Flow
 
 class ExamRepository {
 
@@ -18,9 +19,12 @@ class ExamRepository {
         examDao = AppDatabase.instance(context).examDao()
     }
 
+    fun getOrderedByDueDate(): Flow<List<Exam>> = examDao.getOrderedByDueDate()
 
     suspend fun update(exam: Exam) = examDao.update(exam)
 
     suspend fun insertAll(vararg exams: Exam) = examDao.insertAll(*exams)
+
+    suspend fun delete(exam: Exam) = examDao.delete(exam)
 
 }

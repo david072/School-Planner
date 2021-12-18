@@ -1,8 +1,11 @@
 package de.david072.schoolplanner.database.entities
 
+import android.content.Context
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import de.david072.schoolplanner.database.repositories.SubjectRepository
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 
 @Entity(tableName = "tasks")
@@ -14,4 +17,7 @@ data class Task(
     @ColumnInfo(name = "subject_id") var subjectId: Int,
     @ColumnInfo val description: String?,
     @ColumnInfo var completed: Boolean
-)
+) {
+    suspend fun getSubject(context: Context) =
+        SubjectRepository(context).findById(subjectId).first()
+}

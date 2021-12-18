@@ -6,9 +6,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +19,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Task
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,12 +34,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.accompanist.flowlayout.FlowColumn
+import de.david072.schoolplanner.database.entities.Exam
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
-import de.david072.schoolplanner.database.repositories.SubjectRepository
+import de.david072.schoolplanner.database.repositories.ExamRepository
 import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.ui.theme.AppColors
 import de.david072.schoolplanner.ui.theme.SchoolPlannerTheme
 import de.david072.schoolplanner.util.Utils
@@ -115,12 +115,12 @@ fun HomeScreen(navController: NavController?) {
     }) {
         val viewModel = viewModel<HomeScreenViewModel>()
         Box(modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)) {
-            val dates = viewModel.dates.collectAsState()
+            val groups = remember { viewModel.groups }
             LazyColumn {
-                items(dates.value.keys.size) { index ->
+                items(viewModel.dates.size) { index ->
                     // The key represents the date (as an epoch day)
-                    val key = dates.value.keys.elementAt(index)
-                    DateListItem(navController, viewModel, key, dates.value[key])
+                    val date = viewModel.dates[index]
+                    DateListItem(navController, viewModel, date, groups[date])
                 }
             }
         }
@@ -132,7 +132,7 @@ fun DateListItem(
     navController: NavController?,
     viewModel: HomeScreenViewModel,
     date: Long,
-    subjectGroups: ArrayList<SubjectGroup>?
+    subjectGroups: SnapshotStateList<SubjectGroup>?
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(true) }
 
@@ -231,10 +231,17 @@ fun SubjectListItem(
     ) {
         if (isExpanded) {
             Text(
-                subjectGroup.subject.name,
+                subjectGroup.subject.value.name,
                 style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold),
             )
-            FlowColumn(modifier = Modifier.padding(top = 5.dp), mainAxisSpacing = 2.dp) {
+            Column(modifier = Modifier.padding(top = 5.dp)) {
+                repeat(subjectGroup.exams.size) { index ->
+                    Text(subjectGroup.exams[index].title)
+                }
+
+                if (subjectGroup.exams.isNotEmpty())
+                    HorizontalSpacer(padding = PaddingValues(top = 12.dp, bottom = 8.dp))
+
                 repeat(subjectGroup.tasks.size) { index ->
                     TaskListItem(subjectGroup.tasks[index], navController, viewModel)
                 }
@@ -247,16 +254,6 @@ fun SubjectListItem(
 @Composable
 fun TaskListItem(task: Task, navController: NavController?, viewModel: HomeScreenViewModel) {
     var completed by remember { mutableStateOf(task.completed) }
-    var taskId by remember { mutableStateOf(task.uid) }
-
-    // It seems like compose is "reusing" composables?
-    // This composable seems to get a different task when you mark it as
-    // completed (aka when the task position changes).
-    // Anyway this works but it's dumb.
-    if (task.uid != taskId) {
-        completed = task.completed
-        taskId = task.uid
-    }
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -280,51 +277,137 @@ fun TaskListItem(task: Task, navController: NavController?, viewModel: HomeScree
 }
 
 class HomeScreenViewModel(application: Application) : AndroidViewModel(application) {
-    private val _dates: MutableStateFlow<MutableMap<Long, ArrayList<SubjectGroup>>> =
-        MutableStateFlow(mutableMapOf())
-    val dates: StateFlow<MutableMap<Long, ArrayList<SubjectGroup>>> = _dates
+    val groups = mutableStateMapOf<Long, SnapshotStateList<SubjectGroup>>()
+    val dates = mutableStateListOf<Long>()
+
+    var didStartExams = false
 
     init {
+        // FIXME: These two function are basically the same... Join them somehow?
+        getTasks(application)
+        //getExams(application)
+    }
+
+    private fun getTasks(application: Application) {
         viewModelScope.launch {
             val taskRepository = TaskRepository(application)
-            val subjectRepository = SubjectRepository(application)
+            val groups = this@HomeScreenViewModel.groups
             taskRepository.getOrderedByDueDate().collect {
-                // Temporary variable that is emitted into the flow _dates later.
-                // This is necessary, since otherwise the state won't update above.
-                val generatedMap: MutableMap<Long, ArrayList<SubjectGroup>> = mutableMapOf()
-                it.forEach { task ->
+                it.forEach processTasks@{ task ->
                     val epochDay = task.dueDate.toEpochDay()
                     // Delete the task if the due date passed
-                    if (epochDay < LocalDate.now().toEpochDay()) {
+                    if (task.dueDate.toEpochDay() < LocalDate.now().toEpochDay()) {
                         launch { taskRepository.delete(task) }
-                        return@forEach
+                        return@processTasks
                     }
 
-                    if (generatedMap[epochDay] == null) {
-                        val subject = subjectRepository.findById(task.subjectId).first()
-                        generatedMap[epochDay] =
-                            arrayListOf(SubjectGroup(subject, arrayListOf(task)))
-                        return@forEach
-                    }
-
-                    var didAddTask = false
-                    run tryInsertTask@{
-                        generatedMap[epochDay]!!.forEach subjectGroupLoop@{ subjectGroup ->
-                            if (subjectGroup.subject.uid != task.subjectId) return@subjectGroupLoop
+                    if (groups[epochDay] != null) {
+                        groups[epochDay]!!.forEach findSubjectGroup@{ subjectGroup ->
+                            if (subjectGroup.subject.value.uid != task.subjectId) return@findSubjectGroup
+                            if (subjectGroup.tasks.contains(task)) return@processTasks
                             subjectGroup.tasks.add(task)
-                            didAddTask = true
-                            // Break out of loop, since we inserted the task
-                            return@tryInsertTask
+                            return@processTasks
                         }
-                    }
 
-                    if (!didAddTask) {
-                        val subject = subjectRepository.findById(task.subjectId).first()
-                        generatedMap[epochDay]!!.add(SubjectGroup(subject, arrayListOf(task)))
+                        groups[epochDay]!!.add(
+                            SubjectGroup(
+                                mutableStateOf(task.getSubject(application)),
+                                mutableStateListOf(task)
+                            )
+                        )
+                    } else {
+                        groups[epochDay] = mutableStateListOf(
+                            SubjectGroup(
+                                mutableStateOf(task.getSubject(application)),
+                                mutableStateListOf(task)
+                            )
+                        )
+
+                        addDate(epochDay)
                     }
                 }
-                _dates.emit(generatedMap)
+
+                println("getTasks collect finished")
+                groups.forEach { (key, value) ->
+                    println(">  $key = $value")
+                    value.forEach { value ->
+                        println(">  >  $value (tasks: ${value.tasks.size}, exams: ${value.exams.size})")
+                    }
+                }
+
+                // FIXME: Dumb hack, but these two functions can't run in parallel for some reason.
+                //  Since collect never finishes we have to check that we don't start it twice.
+                if (!didStartExams) {
+                    getExams(application)
+                    didStartExams = true
+                }
             }
+        }
+    }
+
+    private fun getExams(application: Application) {
+        viewModelScope.launch {
+            val examRepository = ExamRepository(application)
+            val groups = this@HomeScreenViewModel.groups
+            examRepository.getOrderedByDueDate().collect {
+                it.forEach processTasks@{ exam ->
+                    val epochDay = exam.dueDate.toEpochDay()
+                    // Delete the exam if the due date passed
+                    if (exam.dueDate.toEpochDay() < LocalDate.now().toEpochDay()) {
+                        launch { examRepository.delete(exam) }
+                        return@processTasks
+                    }
+
+                    if (groups[epochDay] != null) {
+                        groups[epochDay]!!.forEach findSubjectGroup@{ subjectGroup ->
+                            if (subjectGroup.subject.value.uid != exam.subjectId) return@findSubjectGroup
+                            if (subjectGroup.exams.contains(exam)) return@processTasks
+                            subjectGroup.exams.add(exam)
+                            return@processTasks
+                        }
+
+                        groups[epochDay]!!.add(
+                            SubjectGroup(
+                                mutableStateOf(exam.getSubject(application)),
+                                exams = mutableStateListOf(exam)
+                            )
+                        )
+                    } else {
+                        groups[epochDay] = mutableStateListOf(
+                            SubjectGroup(
+                                mutableStateOf(exam.getSubject(application)),
+                                exams = mutableStateListOf(exam)
+                            )
+                        )
+
+                        addDate(epochDay)
+                    }
+                }
+
+                println("getExams collect finished")
+                groups.forEach { (key, value) ->
+                    println(">  $key = $value")
+                    value.forEach { value ->
+                        println(">  >  $value (tasks: ${value.tasks.size}, exams: ${value.exams.size})")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun addDate(newDate: Long) {
+        if (dates.contains(newDate)) return
+
+        if (dates.isEmpty()) dates.add(newDate)
+        else {
+            var didInsert = false
+            for (i in 0 until dates.size) {
+                if (dates[i] > newDate) {
+                    dates.add(if (i == 0) 0 else i - 1, newDate)
+                    didInsert = true
+                }
+            }
+            if (!didInsert) dates.add(newDate)
         }
     }
 
@@ -336,7 +419,11 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 }
 
-data class SubjectGroup(val subject: Subject, val tasks: ArrayList<Task>)
+data class SubjectGroup(
+    val subject: MutableState<Subject>,
+    val tasks: SnapshotStateList<Task> = mutableStateListOf(),
+    val exams: SnapshotStateList<Exam> = mutableStateListOf()
+)
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
