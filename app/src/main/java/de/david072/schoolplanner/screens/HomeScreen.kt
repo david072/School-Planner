@@ -236,7 +236,11 @@ fun SubjectListItem(
             )
             Column(modifier = Modifier.padding(top = 5.dp)) {
                 repeat(subjectGroup.exams.size) { index ->
-                    Text(subjectGroup.exams[index].title)
+                    Text(
+                        subjectGroup.exams[index].title,
+                        modifier = Modifier.clickable {
+                            navController?.navigate("view_test/${subjectGroup.exams[index].uid}")
+                        })
                 }
 
                 if (subjectGroup.exams.isNotEmpty())
@@ -280,7 +284,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
     val groups = mutableStateMapOf<Long, SnapshotStateList<SubjectGroup>>()
     val dates = mutableStateListOf<Long>()
 
-    var didStartExams = false
+    private var didStartExams = false
 
     init {
         // FIXME: These two function are basically the same... Join them somehow?

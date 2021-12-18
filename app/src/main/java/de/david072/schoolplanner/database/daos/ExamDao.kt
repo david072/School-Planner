@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ExamDao {
 
+    @Query("SELECT * FROM exams WHERE uid LIKE :id")
+    fun findById(id: Int): Flow<Exam>
+
     @Query("SELECT * FROM exams ORDER BY due_date")
     fun getOrderedByDueDate(): Flow<List<Exam>>
 

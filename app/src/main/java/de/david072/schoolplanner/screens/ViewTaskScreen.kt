@@ -17,8 +17,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
+import de.david072.schoolplanner.database.entities.Exam
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
+import de.david072.schoolplanner.database.repositories.ExamRepository
 import de.david072.schoolplanner.database.repositories.SubjectRepository
 import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
@@ -34,12 +36,13 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 @Composable
-fun ViewTaskScreen(navController: NavController?, taskId: Int) {
+fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean = false) {
     val context = LocalContext.current
     val viewModel = viewModel<ViewTaskScreenViewModel>()
-    viewModel.setTaskId(taskId)
+    viewModel.setTaskId(taskId, isExam)
 
     val task = viewModel.task.collectAsState()
+    val exam = viewModel.exam.collectAsState()
     val subject = viewModel.subject.collectAsState()
 
     var isCompleted by remember { mutableStateOf(task.value?.completed ?: false) }
@@ -68,12 +71,15 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
             }
 
             IconButton(onClick = {
-                navController?.navigate("edit_task/${taskId}")
+                if (!isExam)
+                    navController?.navigate("edit_task/${taskId}")
             }) {
                 Icon(Icons.Outlined.Edit, "")
             }
         })
     }, floatingActionButton = {
+        if (isExam) return@Scaffold
+
         // TODO: Animate the size change and icon?
         ExtendedFloatingActionButton(
             onClick = {
@@ -91,7 +97,11 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
         Column(modifier = Modifier.padding(all = 10.dp)) {
             // TODO: Prevent the text field from being selectable
             TextField(
-                value = task.value?.title ?: "",
+                value = when {
+                    task.value != null -> task.value!!.title
+                    exam.value != null -> exam.value!!.title
+                    else -> ""
+                },
                 label = { Text(stringResource(R.string.add_task_title_label)) },
                 readOnly = true,
                 onValueChange = {},
@@ -101,18 +111,29 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
             )
 
             HorizontalButton(
-                text = task.value?.dueDate?.let { Utils.formattedDate(it, context) } ?: "",
+                text = when {
+                    task.value != null -> Utils.formattedDate(task.value!!.dueDate, context)
+                    exam.value != null -> Utils.formattedDate(exam.value!!.dueDate, context)
+                    else -> ""
+                },
                 icon = Icons.Outlined.Event,
             )
             HorizontalSpacer()
 
-            val reminderText = if (task.value != null) {
-                val reminderIndex =
-                    Utils.getReminderIndex(task.value!!.dueDate, task.value!!.reminder)
-                if (reminderIndex == -1) {
-                    task.value!!.reminder.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
-                } else stringArrayResource(R.array.reminder_choices)[reminderIndex]
-            } else stringResource(R.string.add_task_reminder_selector)
+            val reminderText = run {
+                if (task.value == null && exam.value == null) stringResource(R.string.add_task_reminder_selector)
+
+                val (dueDate, reminder) = when {
+                    task.value != null -> task.value!!.dueDate to task.value!!.reminder
+                    exam.value != null -> exam.value!!.dueDate to exam.value!!.reminder
+                    else -> return@run stringResource(R.string.add_task_reminder_selector)
+                }
+
+                val reminderIndex = Utils.getReminderIndex(dueDate, reminder)
+                if (reminderIndex == -1)
+                    reminder.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG))
+                else stringArrayResource(R.array.reminder_choices)[reminderIndex]
+            }
 
             HorizontalButton(
                 text = reminderText,
@@ -126,7 +147,11 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
 
             // TODO: Prevent the text field from being selectable
             TextField(
-                value = task.value?.description ?: "",
+                value = when {
+                    task.value != null -> task.value!!.description ?: ""
+                    exam.value != null -> exam.value!!.description ?: ""
+                    else -> ""
+                },
                 readOnly = true,
                 onValueChange = {},
                 modifier = Modifier
@@ -141,21 +166,42 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int) {
 class ViewTaskScreenViewModel(application: Application) :
     AndroidViewModel(application) {
     private val _task: MutableStateFlow<Task?> = MutableStateFlow(null)
+    private val _exam: MutableStateFlow<Exam?> = MutableStateFlow(null)
     val task: StateFlow<Task?> = _task
+    val exam: StateFlow<Exam?> = _exam
 
     private val _subject: MutableStateFlow<Subject?> = MutableStateFlow(null)
     val subject: StateFlow<Subject?> = _subject
 
-    fun setTaskId(taskId: Int) {
+    fun setTaskId(taskId: Int, isExam: Boolean = false) {
         viewModelScope.launch {
-            TaskRepository(getApplication()).findById(taskId).collect { task: Task? ->
-                _task.value = task
+            val flow =
+                if (!isExam) TaskRepository(getApplication()).findById(taskId) else ExamRepository(
+                    getApplication()
+                ).findById(taskId)
+            flow.collect { value: Any? ->
                 // Task could be null if it has been deleted (deleteTask())
-                if (task == null) {
+                if (value == null) {
+                    _task.value = null
+                    _exam.value = null
                     cancel()
                     return@collect
                 }
-                SubjectRepository(getApplication()).findById(task.subjectId).collect { subject ->
+
+                val subjectId: Int =
+                    when (value) {
+                        is Task -> {
+                            _task.value = value
+                            value.subjectId
+                        }
+                        is Exam -> {
+                            _exam.value = value
+                            value.subjectId
+                        }
+                        else -> -1
+                    }
+
+                SubjectRepository(getApplication()).findById(subjectId).collect { subject ->
                     _subject.value = subject
                 }
             }

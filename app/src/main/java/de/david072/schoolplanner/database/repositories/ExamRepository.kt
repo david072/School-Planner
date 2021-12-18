@@ -19,6 +19,8 @@ class ExamRepository {
         examDao = AppDatabase.instance(context).examDao()
     }
 
+    fun findById(id: Int): Flow<Exam> = examDao.findById(id)
+
     fun getOrderedByDueDate(): Flow<List<Exam>> = examDao.getOrderedByDueDate()
 
     suspend fun update(exam: Exam) = examDao.update(exam)

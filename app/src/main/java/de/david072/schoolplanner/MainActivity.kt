@@ -25,6 +25,7 @@ class MainActivity : AppCompatActivity() {
                 val navController = rememberNavController()
 
                 val taskIdArgument = navArgument("taskId") { type = NavType.IntType }
+                val testIdArgument = navArgument("testId") { type = NavType.IntType }
                 val subjectIdArgument = navArgument("subjectId") { type = NavType.IntType }
 
                 NavHost(navController = navController, startDestination = "home_screen") {
@@ -36,6 +37,9 @@ class MainActivity : AppCompatActivity() {
                     }
                     composable("view_task/{taskId}", arguments = listOf(taskIdArgument)) {
                         ViewTaskScreen(navController, it.arguments!!.getInt("taskId"))
+                    }
+                    composable("view_test/{testId}", arguments = listOf(testIdArgument)) {
+                        ViewTaskScreen(navController, it.arguments!!.getInt("testId"), true)
                     }
 
                     composable("settings") { SettingsScreen(navController) }
