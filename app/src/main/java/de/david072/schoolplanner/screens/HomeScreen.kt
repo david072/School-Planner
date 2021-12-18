@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -105,9 +104,7 @@ fun HomeScreen(navController: NavController?) {
             FloatingActionButton(
                 onClick = { isExpanded = !isExpanded },
                 backgroundColor = color,
-                modifier = Modifier
-                    .rotate(angle)
-                    .onSizeChanged { println("Size: $it") }
+                modifier = Modifier.rotate(angle)
             ) {
                 Icon(Icons.Filled.Add, "", tint = Color.Black)
             }
@@ -243,7 +240,7 @@ fun SubjectListItem(
                         })
                 }
 
-                if (subjectGroup.exams.isNotEmpty())
+                if (subjectGroup.exams.isNotEmpty() && subjectGroup.tasks.isNotEmpty())
                     HorizontalSpacer(padding = PaddingValues(top = 12.dp, bottom = 8.dp))
 
                 repeat(subjectGroup.tasks.size) { index ->
@@ -297,6 +294,22 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
             val taskRepository = TaskRepository(application)
             val groups = this@HomeScreenViewModel.groups
             taskRepository.getOrderedByDueDate().collect {
+                groups.forEach { (key, subjectGroups) ->
+                    subjectGroups.forEach { subjectGroup ->
+                        subjectGroup.tasks.forEach { task ->
+                            if (!it.contains(task)) subjectGroup.tasks.remove(task)
+                        }
+
+                        if (subjectGroup.tasks.isEmpty() && subjectGroup.exams.isEmpty())
+                            subjectGroups.remove(subjectGroup)
+                    }
+
+                    if (subjectGroups.isEmpty()) {
+                        groups.remove(key)
+                        dates.remove(key)
+                    }
+                }
+
                 it.forEach processTasks@{ task ->
                     val epochDay = task.dueDate.toEpochDay()
                     // Delete the task if the due date passed
@@ -308,7 +321,15 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     if (groups[epochDay] != null) {
                         groups[epochDay]!!.forEach findSubjectGroup@{ subjectGroup ->
                             if (subjectGroup.subject.value.uid != task.subjectId) return@findSubjectGroup
-                            if (subjectGroup.tasks.contains(task)) return@processTasks
+
+                            for (i in 0 until subjectGroup.tasks.size) {
+                                val subjectGroupTask = subjectGroup.tasks[i]
+                                if (subjectGroupTask.uid == task.uid) {
+                                    if (subjectGroupTask != task) subjectGroup.tasks[i] = task
+                                    return@processTasks
+                                }
+                            }
+
                             subjectGroup.tasks.add(task)
                             return@processTasks
                         }
@@ -331,14 +352,6 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     }
                 }
 
-                println("getTasks collect finished")
-                groups.forEach { (key, value) ->
-                    println(">  $key = $value")
-                    value.forEach { value ->
-                        println(">  >  $value (tasks: ${value.tasks.size}, exams: ${value.exams.size})")
-                    }
-                }
-
                 // FIXME: Dumb hack, but these two functions can't run in parallel for some reason.
                 //  Since collect never finishes we have to check that we don't start it twice.
                 if (!didStartExams) {
@@ -354,6 +367,22 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
             val examRepository = ExamRepository(application)
             val groups = this@HomeScreenViewModel.groups
             examRepository.getOrderedByDueDate().collect {
+                groups.forEach { (key, subjectGroups) ->
+                    subjectGroups.forEach { subjectGroup ->
+                        subjectGroup.exams.forEach { exam ->
+                            if (!it.contains(exam)) subjectGroup.exams.remove(exam)
+                        }
+
+                        if (subjectGroup.tasks.isEmpty() && subjectGroup.exams.isEmpty())
+                            subjectGroups.remove(subjectGroup)
+                    }
+
+                    if (subjectGroups.isEmpty()) {
+                        groups.remove(key)
+                        dates.remove(key)
+                    }
+                }
+
                 it.forEach processTasks@{ exam ->
                     val epochDay = exam.dueDate.toEpochDay()
                     // Delete the exam if the due date passed
@@ -365,7 +394,15 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                     if (groups[epochDay] != null) {
                         groups[epochDay]!!.forEach findSubjectGroup@{ subjectGroup ->
                             if (subjectGroup.subject.value.uid != exam.subjectId) return@findSubjectGroup
-                            if (subjectGroup.exams.contains(exam)) return@processTasks
+
+                            for (i in 0 until subjectGroup.exams.size) {
+                                val subjectGroupExam = subjectGroup.exams[i]
+                                if (subjectGroupExam.uid == exam.uid) {
+                                    if (subjectGroupExam != exam) subjectGroup.exams[i] = exam
+                                    return@processTasks
+                                }
+                            }
+
                             subjectGroup.exams.add(exam)
                             return@processTasks
                         }
@@ -385,14 +422,6 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                         )
 
                         addDate(epochDay)
-                    }
-                }
-
-                println("getExams collect finished")
-                groups.forEach { (key, value) ->
-                    println(">  $key = $value")
-                    value.forEach { value ->
-                        println(">  >  $value (tasks: ${value.tasks.size}, exams: ${value.exams.size})")
                     }
                 }
             }

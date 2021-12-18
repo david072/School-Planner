@@ -217,10 +217,11 @@ class ViewTaskScreenViewModel(application: Application) :
     }
 
     fun deleteTask() {
-        if (task.value == null) return
-
         viewModelScope.launch {
-            TaskRepository(getApplication()).delete(task.value!!)
+            if (task.value != null)
+                TaskRepository(getApplication()).delete(task.value!!)
+            else if (exam.value != null)
+                ExamRepository(getApplication()).delete(exam.value!!)
         }
     }
 }
