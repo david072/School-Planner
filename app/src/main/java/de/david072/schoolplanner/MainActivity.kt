@@ -35,6 +35,9 @@ class MainActivity : AppCompatActivity() {
                     composable("edit_task/{taskId}", arguments = listOf(taskIdArgument)) {
                         AddTaskScreen(navController, false, it.arguments?.getInt("taskId"))
                     }
+                    composable("edit_test/{testId}", arguments = listOf(testIdArgument)) {
+                        AddTaskScreen(navController, true, it.arguments?.getInt("testId"))
+                    }
                     composable("view_task/{taskId}", arguments = listOf(taskIdArgument)) {
                         ViewTaskScreen(navController, it.arguments!!.getInt("taskId"))
                     }

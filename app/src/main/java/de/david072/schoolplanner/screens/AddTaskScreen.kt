@@ -67,14 +67,15 @@ import java.util.*
 @Composable
 fun AddTaskScreen(
     navController: NavController?,
-    createTest: Boolean = false,
+    isExam: Boolean = false,
     taskIdToEdit: Int? = null
 ) {
     val context = LocalContext.current
     val viewModel = viewModel<AddTaskViewModel>()
 
-    if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit)
+    if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit, isExam)
     val taskToEdit = viewModel.taskToEdit.collectAsState()
+    val examToEdit = viewModel.examToEdit.collectAsState()
 
     val parentTaskData by remember { mutableStateOf(TaskData()) }
     val taskDatas = remember { mutableStateListOf(TaskData()) }
@@ -136,9 +137,9 @@ fun AddTaskScreen(
             if (!parentTaskData.validate(true))
                 failed = true
 
-            if (taskToEdit.value != null) {
+            if (taskToEdit.value != null || examToEdit.value != null) {
                 if (!failed) {
-                    if (!createTest) {
+                    if (!isExam) {
                         Task(
                             uid = taskToEdit.value!!.uid,
                             title = parentTaskData.title.value.value,
@@ -149,7 +150,14 @@ fun AddTaskScreen(
                             completed = taskToEdit.value!!.completed
                         ).let { viewModel.updateTask(it) }
                     } else {
-                        TODO()
+                        Exam(
+                            uid = examToEdit.value!!.uid,
+                            title = parentTaskData.title.value.value,
+                            dueDate = parentTaskData.dueDate.value.value!!,
+                            reminder = parentTaskData.getReminderStartDate()!!,
+                            subjectId = parentTaskData.subjectId.value.value!!,
+                            description = parentTaskData.description.value.value
+                        ).let { viewModel.updateExam(it) }
                     }
                 }
             } else {
@@ -166,7 +174,7 @@ fun AddTaskScreen(
                         ) parentTaskData.getReminderStartDate()!!
                         else it.getReminderStartDate(parentTaskData.dueDate.value.value)!!
 
-                    result += if (!createTest) Task(
+                    result += if (!isExam) Task(
                         title = it.title.value.value,
                         dueDate = parentTaskData.dueDate.value.value!!,
                         reminder = reminder,
@@ -188,7 +196,7 @@ fun AddTaskScreen(
                 if (!failed) {
                     if (result.isEmpty()) return@ExtendedFloatingActionButton
 
-                    if (!createTest) viewModel.insertAllTasks(result as ArrayList<Task>)
+                    if (!isExam) viewModel.insertAllTasks(result as ArrayList<Task>)
                     else viewModel.insertAllExams(result as ArrayList<Exam>)
                 }
             }
@@ -201,13 +209,14 @@ fun AddTaskScreen(
             navController?.popBackStack()
         }, icon = {
             Icon(
-                if (taskToEdit.value == null) Icons.Filled.Add
+                if (taskToEdit.value == null && examToEdit.value == null) Icons.Filled.Add
                 else Icons.Outlined.Save,
                 ""
             )
         }, text = {
             Text(
-                if (taskToEdit.value == null) stringResource(if (!createTest) R.string.add_task_button else R.string.add_test_button)
+                if (taskToEdit.value == null && examToEdit.value == null)
+                    stringResource(if (!isExam) R.string.add_task_button else R.string.add_test_button)
                 else stringResource(R.string.general_save)
             )
         }, backgroundColor = MaterialTheme.colors.primary)
@@ -217,17 +226,31 @@ fun AddTaskScreen(
 
             // Set all of the values if we're editing. Only do this the first time though
             // as we need to allow that changes are made to this for editing
-            if (taskToEdit.value != null && !didSetValues) {
-                val task = taskToEdit.value!!
+            if ((taskToEdit.value != null || examToEdit.value != null) && !didSetValues) {
+                val taskDueDate =
+                    if (taskToEdit.value != null) taskToEdit.value!!.dueDate
+                    else examToEdit.value!!.dueDate
+
                 parentTaskData.apply {
-                    title.value = title.value.copy(value = task.title)
-                    description.value = description.value.copy(value = task.description ?: "")
-                    dueDate.value = dueDate.value.copy(value = task.dueDate)
+                    title.value = title.value.copy(
+                        value = if (taskToEdit.value != null) taskToEdit.value!!.title
+                        else examToEdit.value!!.title
+                    )
+                    description.value = description.value.copy(
+                        value = (if (taskToEdit.value != null) taskToEdit.value!!.description
+                        else examToEdit.value!!.description) ?: ""
+                    )
+                    dueDate.value = dueDate.value.copy(value = taskDueDate)
                     reminderIndex.value = reminderIndex.value.copy(
                         value = Utils.getReminderIndex(
-                            task.dueDate,
-                            task.reminder
+                            taskDueDate,
+                            if (taskToEdit.value != null) taskToEdit.value!!.reminder
+                            else examToEdit.value!!.reminder
                         )
+                    )
+                    subjectId.value = subjectId.value.copy(
+                        value = if (taskToEdit.value != null) taskToEdit.value!!.subjectId
+                        else examToEdit.value!!.subjectId
                     )
                 }
                 didSetValues = true
@@ -501,11 +524,20 @@ private fun TaskListItem(
 
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
     private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
+    private val _examToEdit: MutableStateFlow<Exam?> = MutableStateFlow(null)
     val taskToEdit: StateFlow<Task?> = _taskToEdit
+    val examToEdit: StateFlow<Exam?> = _examToEdit
 
-    fun setTaskId(taskId: Int) {
+    fun setTaskId(taskId: Int, isExam: Boolean = false) {
         viewModelScope.launch {
-            TaskRepository(getApplication()).findById(taskId).collect { _taskToEdit.value = it }
+            val flow =
+                if (!isExam) TaskRepository(getApplication()).findById(taskId) else ExamRepository(
+                    getApplication()
+                ).findById(taskId)
+            flow.collect {
+                if (it is Task) _taskToEdit.value = it
+                else if (it is Exam) _examToEdit.value = it
+            }
         }
     }
 

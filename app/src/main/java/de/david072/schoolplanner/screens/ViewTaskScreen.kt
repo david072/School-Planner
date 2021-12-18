@@ -71,8 +71,7 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean =
             }
 
             IconButton(onClick = {
-                if (!isExam)
-                    navController?.navigate("edit_task/${taskId}")
+                navController?.navigate("edit_${if (!isExam) "task" else "test"}/${taskId}")
             }) {
                 Icon(Icons.Outlined.Edit, "")
             }
