@@ -131,7 +131,11 @@ fun DateListItem(
     date: Long,
     subjectGroups: SnapshotStateList<SubjectGroup>?
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(true) }
+    var isExpanded by rememberSaveable {
+        mutableStateOf(
+            LocalDate.ofEpochDay(date).isBefore(LocalDate.now().plusMonths(1))
+        )
+    }
 
     val arrowAngle by animateFloatAsState(
         targetValue = if (isExpanded) 360f else 180f,
