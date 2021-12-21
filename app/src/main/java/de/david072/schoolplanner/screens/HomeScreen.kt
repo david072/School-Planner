@@ -75,8 +75,8 @@ fun HomeScreen(navController: NavController?) {
             val animation = @Composable { content: @Composable AnimatedVisibilityScope.() -> Unit ->
                 AnimatedVisibility(
                     visible = isExpanded,
-                    enter = fadeIn() + slideInVertically({ it / 2 }),
-                    exit = fadeOut() + slideOutVertically({ it / 2 }),
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                     content = content
                 )
             }
