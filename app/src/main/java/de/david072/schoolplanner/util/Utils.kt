@@ -8,6 +8,9 @@ import java.time.format.FormatStyle
 
 class Utils {
     companion object {
+        const val LINK_REGEX =
+            "(https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?:\\/\\/(?:www\\.|(?!www))[a-zA-Z0-9]+\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]+\\.[^\\s]{2,})"
+
         fun getReminderIndex(dueDate: LocalDate, reminderStartDate: LocalDate): Int {
             return when (val difference =
                 (dueDate.toEpochDay() - reminderStartDate.toEpochDay()).toInt()) {

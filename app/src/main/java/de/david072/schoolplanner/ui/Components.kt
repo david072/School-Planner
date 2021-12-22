@@ -11,10 +11,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
+import de.david072.schoolplanner.util.Utils
 
 @Composable
 fun AppTopAppBar(
@@ -83,4 +86,57 @@ fun HorizontalSpacer(
             .height(1.dp)
             .fillMaxWidth()
     )
+}
+
+@Composable
+fun FormattedDescription(source: String) {
+    if (source.isEmpty()) return
+
+    val lines = source.split('\n')
+    lines.forEach {
+        val line = it.trim()
+        when {
+            // Unordered (Bullet point) list
+            line.matches("-.*".toRegex()) -> {
+                Row {
+                    Text("\u2022", modifier = Modifier.padding(end = 5.dp))
+                    Text(line.substring(1).trim())
+                }
+            }
+            // Ordered (Indexed) list
+            line.matches("\\d*\\..*".toRegex()) -> {
+                Row {
+                    val indexEnd = line.indexOf('.') + 1
+                    Text(
+                        line.substring(0, indexEnd),
+                        modifier = Modifier.padding(end = 5.dp)
+                    )
+                    Text(line.substring(indexEnd).trim())
+                }
+            }
+            // Links (format: [<link>](<text to display>))
+            line.contains("\\[${Utils.LINK_REGEX}]\\(.*\\)".toRegex()) -> {
+                val link = line.substring(1, line.lastIndexOf(']'))
+                val text = line.substring(line.indexOf('(') + 1, line.lastIndexOf(')'))
+                val rest =
+                    if (line.length > line.lastIndexOf(')'))
+                        line.substring(line.lastIndexOf(')') + 1)
+                    else ""
+
+                Row {
+                    val uriHandler = LocalUriHandler.current
+                    Text(text,
+                        style = LocalTextStyle.current.copy(
+                            textDecoration = TextDecoration.Underline,
+                            color = Color.Blue
+                        ),
+                        modifier = Modifier.clickable { uriHandler.openUri(link) })
+
+                    if (rest.isNotEmpty()) Text(rest)
+                }
+            }
+            // No formatting
+            else -> Text(line)
+        }
+    }
 }
