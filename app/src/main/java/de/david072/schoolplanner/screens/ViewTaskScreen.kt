@@ -18,6 +18,7 @@ import androidx.navigation.NavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.entities.Exam
+import de.david072.schoolplanner.database.entities.StateTask
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.database.repositories.ExamRepository
@@ -45,26 +46,18 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean =
     val exam = viewModel.exam.collectAsState()
     val subject = viewModel.subject.collectAsState()
 
-    var isCompleted by remember { mutableStateOf(task.value?.completed ?: false) }
-    var didSetCompleted by remember { mutableStateOf(false) }
-
-    if (!didSetCompleted && task.value != null) {
-        isCompleted = task.value!!.completed
-        didSetCompleted = true
-    }
-
     Scaffold(topBar = {
         AppTopAppBar(navController, true, actions = {
             IconButton(onClick = {
                 MaterialAlertDialogBuilder(context)
-                    .setTitle(context.resources.getString(R.string.delete_dialog_title))
-                    .setMessage(context.resources.getString(R.string.delete_dialog_message))
-                    .setPositiveButton(context.resources.getString(R.string.general_delete)) { dialog, _ ->
+                    .setTitle(context.getString(R.string.delete_dialog_title))
+                    .setMessage(context.getString(R.string.delete_dialog_message))
+                    .setPositiveButton(context.getString(R.string.general_delete)) { dialog, _ ->
                         viewModel.deleteTask()
                         dialog.dismiss()
                         navController?.popBackStack()
                     }
-                    .setNegativeButton(context.resources.getString(R.string.delete_dialog_negative_button)) { dialog, _ -> dialog.cancel() }
+                    .setNegativeButton(context.getString(R.string.delete_dialog_negative_button)) { dialog, _ -> dialog.cancel() }
                     .show()
             }) {
                 Icon(Icons.Outlined.Delete, "")
@@ -82,12 +75,10 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean =
         // TODO: Animate the size change and icon?
         ExtendedFloatingActionButton(
             onClick = {
-                if (task.value != null) {
-                    viewModel.setCompleted(!isCompleted)
-                    isCompleted = !isCompleted
-                }
+                if (task.value != null)
+                    viewModel.setCompleted(!task.value!!.completed)
             },
-            text = { Text(if (isCompleted) "Mark incomplete" else "Complete") },
+            text = { Text(if (task.value == null || !task.value!!.completed) "Complete" else "Mark incomplete") },
             backgroundColor = MaterialTheme.colors.primary,
             icon = {
                 Icon(Icons.Outlined.Done, "")
@@ -164,9 +155,9 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean =
 
 class ViewTaskScreenViewModel(application: Application) :
     AndroidViewModel(application) {
-    private val _task: MutableStateFlow<Task?> = MutableStateFlow(null)
+    private val _task: MutableStateFlow<StateTask?> = MutableStateFlow(null)
     private val _exam: MutableStateFlow<Exam?> = MutableStateFlow(null)
-    val task: StateFlow<Task?> = _task
+    val task: StateFlow<StateTask?> = _task
     val exam: StateFlow<Exam?> = _exam
 
     private val _subject: MutableStateFlow<Subject?> = MutableStateFlow(null)
@@ -190,7 +181,7 @@ class ViewTaskScreenViewModel(application: Application) :
                 val subjectId: Int =
                     when (value) {
                         is Task -> {
-                            _task.value = value
+                            _task.value = value.toStateTask()
                             value.subjectId
                         }
                         is Exam -> {
@@ -212,27 +203,16 @@ class ViewTaskScreenViewModel(application: Application) :
 
         viewModelScope.launch {
             val task = task.value.apply { this!!.completed = completed }!!
-            TaskRepository(getApplication()).update(task)
+            TaskRepository(getApplication()).update(task.toTask())
         }
     }
 
     fun deleteTask() {
         viewModelScope.launch {
             if (task.value != null)
-                TaskRepository(getApplication()).delete(task.value!!)
+                TaskRepository(getApplication()).delete(task.value!!.toTask())
             else if (exam.value != null)
                 ExamRepository(getApplication()).delete(exam.value!!)
         }
     }
 }
-
-// Disabled, since the view task screen needs a subject id
-/*@Preview
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(locale = "de")
-@Composable
-private fun Preview() {
-    SchoolPlannerTheme {
-        ViewTaskScreen(null, -1)
-    }
-}*/

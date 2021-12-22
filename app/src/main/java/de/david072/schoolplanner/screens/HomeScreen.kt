@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.entities.Exam
+import de.david072.schoolplanner.database.entities.StateTask
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
 import de.david072.schoolplanner.database.repositories.ExamRepository
@@ -156,7 +157,7 @@ fun DateListItem(
                 var tasksLeft = 0
                 subjectGroups?.forEach { subjectGroup ->
                     exams += subjectGroup.exams.size
-                    tasksLeft += subjectGroup.tasks.count { !it.completed.value }
+                    tasksLeft += subjectGroup.tasks.count { !it.completed }
                 }
 
                 Column {
@@ -276,23 +277,22 @@ fun SubjectListItem(
 // TODO: Add some sort of animation when the task moves in the list
 @Composable
 fun TaskListItem(task: StateTask, navController: NavController?, viewModel: HomeScreenViewModel) {
-
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.height(IntrinsicSize.Min)
     ) {
-        Checkbox(checked = task.completed.value, onCheckedChange = {
-            viewModel.setCompleted(task.task, it)
+        Checkbox(checked = task.completed, onCheckedChange = {
+            viewModel.setCompleted(task.toTask(), it)
         })
 
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .clickable {
-                    navController?.navigate("view_task/${task.uid.value}")
+                    navController?.navigate("view_task/${task.uid}")
                 }, contentAlignment = Alignment.CenterStart
         ) {
-            Text(task.title.value)
+            Text(task.title)
         }
     }
 }
@@ -319,7 +319,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                 groups.forEach { (key, subjectGroups) ->
                     subjectGroups.forEach { subjectGroup ->
                         subjectGroup.tasks.forEach { task ->
-                            if (!it.contains(task.task)) subjectGroup.tasks.remove(task)
+                            if (!it.contains(task.toTask())) subjectGroup.tasks.remove(task)
                         }
 
                         if (subjectGroup.tasks.isEmpty() && subjectGroup.exams.isEmpty())
@@ -346,28 +346,28 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
                             for (i in 0 until subjectGroup.tasks.size) {
                                 val subjectGroupTask = subjectGroup.tasks[i]
-                                if (subjectGroupTask.uid.value == task.uid) {
-                                    if (subjectGroupTask != StateTask(task)) subjectGroup.tasks[i] =
+                                if (subjectGroupTask.uid == task.uid) {
+                                    if (subjectGroupTask != task.toStateTask()) subjectGroup.tasks[i] =
                                         StateTask(task)
                                     return@processTasks
                                 }
                             }
 
-                            subjectGroup.tasks.add(StateTask(task))
+                            subjectGroup.tasks.add(task.toStateTask())
                             return@processTasks
                         }
 
                         groups[epochDay]!!.add(
                             SubjectGroup(
                                 mutableStateOf(task.getSubject(application)),
-                                mutableStateListOf(StateTask(task))
+                                mutableStateListOf(task.toStateTask())
                             )
                         )
                     } else {
                         groups[epochDay] = mutableStateListOf(
                             SubjectGroup(
                                 mutableStateOf(task.getSubject(application)),
-                                mutableStateListOf(StateTask(task))
+                                mutableStateListOf(task.toStateTask())
                             )
                         )
 
@@ -482,20 +482,6 @@ data class SubjectGroup(
     val tasks: SnapshotStateList<StateTask> = mutableStateListOf(),
     val exams: SnapshotStateList<Exam> = mutableStateListOf()
 )
-
-data class StateTask(
-    val uid: MutableState<Int>,
-    val title: MutableState<String>,
-    var completed: MutableState<Boolean>,
-    val task: Task
-) {
-    constructor(task: Task) : this(
-        mutableStateOf(task.uid),
-        mutableStateOf(task.title),
-        mutableStateOf(task.completed),
-        task
-    )
-}
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
