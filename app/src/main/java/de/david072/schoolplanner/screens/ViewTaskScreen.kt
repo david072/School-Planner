@@ -1,12 +1,14 @@
 package de.david072.schoolplanner.screens
 
 import android.app.Application
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -25,6 +27,7 @@ import de.david072.schoolplanner.database.repositories.ExamRepository
 import de.david072.schoolplanner.database.repositories.SubjectRepository
 import de.david072.schoolplanner.database.repositories.TaskRepository
 import de.david072.schoolplanner.ui.AppTopAppBar
+import de.david072.schoolplanner.ui.FormattedDescription
 import de.david072.schoolplanner.ui.HorizontalButton
 import de.david072.schoolplanner.ui.HorizontalSpacer
 import de.david072.schoolplanner.util.Utils
@@ -135,20 +138,35 @@ fun ViewTaskScreen(navController: NavController?, taskId: Int, isExam: Boolean =
                 icon = Icons.Outlined.School,
             )
 
-            // TODO: Prevent the text field from being selectable
-            TextField(
-                value = when {
-                    task.value != null -> task.value!!.description ?: ""
-                    exam.value != null -> exam.value!!.description ?: ""
-                    else -> ""
-                },
-                readOnly = true,
-                onValueChange = {},
+            Column(
                 modifier = Modifier
+                    .padding(top = 15.dp)
+                    .defaultMinSize(TextFieldDefaults.MinWidth, TextFieldDefaults.MinHeight)
                     .fillMaxWidth()
-                    .padding(top = 15.dp),
-                label = { Text(stringResource(R.string.add_task_description_label)) },
-            )
+                    .clip(MaterialTheme.shapes.small)
+                    .background(
+                        TextFieldDefaults
+                            .textFieldColors()
+                            .backgroundColor(true).value
+                    )
+                    .padding(top = 8.dp, start = 15.dp, end = 15.dp, bottom = 10.dp)
+            ) {
+                Text(
+                    stringResource(R.string.add_task_description_label),
+                    style = MaterialTheme.typography.caption.copy(
+                        color = MaterialTheme.colors.onSurface.copy(ContentAlpha.medium)
+                    )
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+
+                FormattedDescription(
+                    source = when {
+                        task.value != null -> task.value!!.description ?: ""
+                        exam.value != null -> exam.value!!.description ?: ""
+                        else -> ""
+                    }
+                )
+            }
         }
     }
 }
