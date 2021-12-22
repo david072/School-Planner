@@ -314,6 +314,8 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
             val taskRepository = TaskRepository(application)
             val groups = this@HomeScreenViewModel.groups
             taskRepository.getOrderedByDueDate().collect {
+                // Remove tasks that are in the new list and in our groups,
+                // so that we can "re-add" them later
                 groups.forEach { (key, subjectGroups) ->
                     subjectGroups.forEach { subjectGroup ->
                         subjectGroup.tasks.forEach { task ->
@@ -454,11 +456,13 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
         if (dates.isEmpty()) dates.add(newDate)
         else {
+            // Insert in such a way, so that dates are sorted from most recent to furthest in the future
             var didInsert = false
             for (i in 0 until dates.size) {
                 if (dates[i] > newDate) {
                     dates.add(if (i == 0) 0 else i - 1, newDate)
                     didInsert = true
+                    break
                 }
             }
             if (!didInsert) dates.add(newDate)
