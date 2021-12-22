@@ -115,12 +115,11 @@ fun HomeScreen(navController: NavController?) {
     }) {
         val viewModel = viewModel<HomeScreenViewModel>()
         Box(modifier = Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp)) {
-            val groups = remember { viewModel.groups }
             LazyColumn {
                 items(viewModel.dates.size) { index ->
                     // The key represents the date (as an epoch day)
                     val date = viewModel.dates[index]
-                    DateListItem(navController, viewModel, date, groups[date])
+                    DateListItem(navController, viewModel, date, viewModel.groups[date])
                 }
             }
         }

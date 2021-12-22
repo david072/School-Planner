@@ -77,9 +77,6 @@ fun AddTaskScreen(
     val taskToEdit = viewModel.taskToEdit.collectAsState()
     val examToEdit = viewModel.examToEdit.collectAsState()
 
-    val parentTaskData by remember { mutableStateOf(TaskData()) }
-    val taskDatas = remember { mutableStateListOf(TaskData()) }
-
     var didSetValues by remember { mutableStateOf(false) }
 
     var subjectName: String? by remember { mutableStateOf(null) }
@@ -88,7 +85,7 @@ fun AddTaskScreen(
         ?.getLiveData<Int>("subject_id")
 
     val subjectIdObserver = Observer<Int> {
-        parentTaskData.subjectId.apply setSubjectId@{
+        viewModel.parentTaskData.value.subjectId.apply setSubjectId@{
             value = value.copy(value = it, isError = false)
         }
         subjectName = null
@@ -102,9 +99,9 @@ fun AddTaskScreen(
         onDispose { subjectIdLiveData?.removeObserver(subjectIdObserver) }
     }
 
-    if (subjectName == null && parentTaskData.subjectId.value.value != null) {
+    if (subjectName == null && viewModel.parentTaskData.value.subjectId.value.value != null) {
         val subjectQueryState =
-            SubjectRepository(context).findById(parentTaskData.subjectId.value.value!!)
+            SubjectRepository(context).findById(viewModel.parentTaskData.value.subjectId.value.value!!)
                 .collectAsState(initial = null)
         if (subjectQueryState.value != null) subjectName =
             subjectQueryState.value!!.name
@@ -126,7 +123,7 @@ fun AddTaskScreen(
     Scaffold(scaffoldState = scaffoldState, topBar = {
         AppTopAppBar(navController, true, actions = {
             if (taskIdToEdit == null) {
-                IconButton(onClick = { taskDatas.add(TaskData()) }) {
+                IconButton(onClick = { viewModel.taskDatas.add(TaskData()) }) {
                     Icon(Icons.Filled.Add, "")
                 }
             }
@@ -134,7 +131,7 @@ fun AddTaskScreen(
     }, floatingActionButton = {
         ExtendedFloatingActionButton(onClick = {
             var failed = false
-            if (!parentTaskData.validate(true))
+            if (!viewModel.parentTaskData.value.validate(true))
                 failed = true
 
             if (taskToEdit.value != null || examToEdit.value != null) {
@@ -142,27 +139,27 @@ fun AddTaskScreen(
                     if (!isExam) {
                         Task(
                             uid = taskToEdit.value!!.uid,
-                            title = parentTaskData.title.value.value,
-                            dueDate = parentTaskData.dueDate.value.value!!,
-                            reminder = parentTaskData.getReminderStartDate()!!,
-                            subjectId = parentTaskData.subjectId.value.value!!,
-                            description = parentTaskData.description.value.value,
+                            title = viewModel.parentTaskData.value.title.value.value,
+                            dueDate = viewModel.parentTaskData.value.dueDate.value.value!!,
+                            reminder = viewModel.parentTaskData.value.getReminderStartDate()!!,
+                            subjectId = viewModel.parentTaskData.value.subjectId.value.value!!,
+                            description = viewModel.parentTaskData.value.description.value.value,
                             completed = taskToEdit.value!!.completed
                         ).let { viewModel.updateTask(it) }
                     } else {
                         Exam(
                             uid = examToEdit.value!!.uid,
-                            title = parentTaskData.title.value.value,
-                            dueDate = parentTaskData.dueDate.value.value!!,
-                            reminder = parentTaskData.getReminderStartDate()!!,
-                            subjectId = parentTaskData.subjectId.value.value!!,
-                            description = parentTaskData.description.value.value
+                            title = viewModel.parentTaskData.value.title.value.value,
+                            dueDate = viewModel.parentTaskData.value.dueDate.value.value!!,
+                            reminder = viewModel.parentTaskData.value.getReminderStartDate()!!,
+                            subjectId = viewModel.parentTaskData.value.subjectId.value.value!!,
+                            description = viewModel.parentTaskData.value.description.value.value
                         ).let { viewModel.updateExam(it) }
                     }
                 }
             } else {
                 val result = arrayListOf<Any>()
-                taskDatas.forEach {
+                viewModel.taskDatas.forEach {
                     if (!it.validate() || failed) {
                         if (!failed) failed = true
                         return@forEach
@@ -170,25 +167,25 @@ fun AddTaskScreen(
 
                     val reminder =
                         if (it.reminderIndex.value.value == -2 ||
-                            it.reminderIndex.value.value == parentTaskData.reminderIndex.value.value
-                        ) parentTaskData.getReminderStartDate()!!
-                        else it.getReminderStartDate(parentTaskData.dueDate.value.value)!!
+                            it.reminderIndex.value.value == viewModel.parentTaskData.value.reminderIndex.value.value
+                        ) viewModel.parentTaskData.value.getReminderStartDate()!!
+                        else it.getReminderStartDate(viewModel.parentTaskData.value.dueDate.value.value)!!
 
                     result += if (!isExam) Task(
                         title = it.title.value.value,
-                        dueDate = parentTaskData.dueDate.value.value!!,
+                        dueDate = viewModel.parentTaskData.value.dueDate.value.value!!,
                         reminder = reminder,
                         subjectId = it.subjectId.value.value
-                            ?: parentTaskData.subjectId.value.value!!,
+                            ?: viewModel.parentTaskData.value.subjectId.value.value!!,
                         description = it.description.value.value,
                         completed = false
                     )
                     else Exam(
                         title = it.title.value.value,
-                        dueDate = parentTaskData.dueDate.value.value!!,
+                        dueDate = viewModel.parentTaskData.value.dueDate.value.value!!,
                         reminder = reminder,
                         subjectId = it.subjectId.value.value
-                            ?: parentTaskData.subjectId.value.value!!,
+                            ?: viewModel.parentTaskData.value.subjectId.value.value!!,
                         description = it.description.value.value,
                     )
                 }
@@ -231,7 +228,7 @@ fun AddTaskScreen(
                     if (taskToEdit.value != null) taskToEdit.value!!.dueDate
                     else examToEdit.value!!.dueDate
 
-                parentTaskData.apply {
+                viewModel.parentTaskData.value.apply {
                     title.value = title.value.copy(
                         value = if (taskToEdit.value != null) taskToEdit.value!!.title
                         else examToEdit.value!!.title
@@ -263,9 +260,9 @@ fun AddTaskScreen(
             ) {
                 if (taskIdToEdit != null) {
                     TextField(
-                        value = parentTaskData.title.value.value,
+                        value = viewModel.parentTaskData.value.title.value.value,
                         onValueChange = {
-                            parentTaskData.title.apply {
+                            viewModel.parentTaskData.value.title.apply {
                                 value = value.copy(value = it)
                             }
                         },
@@ -278,16 +275,16 @@ fun AddTaskScreen(
                 }
 
                 HorizontalButton(
-                    text = if (parentTaskData.dueDate.value.value == null)
+                    text = if (viewModel.parentTaskData.value.dueDate.value.value == null)
                         stringResource(R.string.add_task_due_date_selector)
-                    else parentTaskData.dueDate.value.value!!.format(
+                    else viewModel.parentTaskData.value.dueDate.value.value!!.format(
                         DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
                     ),
                     icon = Icons.Outlined.Event,
-                    end = { if (parentTaskData.dueDate.value.isError) ErrorIcon() }
+                    end = { if (viewModel.parentTaskData.value.dueDate.value.isError) ErrorIcon() }
                 ) {
-                    pickDate(context, parentTaskData.dueDate.value.value) {
-                        parentTaskData.dueDate.apply {
+                    pickDate(context, viewModel.parentTaskData.value.dueDate.value.value) {
+                        viewModel.parentTaskData.value.dueDate.apply {
                             value = value.copy(value = it, isError = false)
                         }
                     }
@@ -295,11 +292,11 @@ fun AddTaskScreen(
                 HorizontalSpacer()
 
                 ReminderPicker(
-                    parentTaskData.reminderIndex.value.value,
-                    parentTaskData.getReminderStartDate(),
-                    end = { if (parentTaskData.reminderIndex.value.isError) ErrorIcon() }
+                    viewModel.parentTaskData.value.reminderIndex.value.value,
+                    viewModel.parentTaskData.value.getReminderStartDate(),
+                    end = { if (viewModel.parentTaskData.value.reminderIndex.value.isError) ErrorIcon() }
                 ) { index ->
-                    parentTaskData.apply {
+                    viewModel.parentTaskData.value.apply {
                         reminderIndex.value =
                             reminderIndex.value.copy(value = index, isError = false)
                     }
@@ -309,14 +306,16 @@ fun AddTaskScreen(
                 HorizontalButton(
                     text = subjectName ?: stringResource(R.string.add_task_subject_selector),
                     icon = Icons.Outlined.School,
-                    end = { if (parentTaskData.subjectId.value.isError) ErrorIcon() }
+                    end = { if (viewModel.parentTaskData.value.subjectId.value.isError) ErrorIcon() }
                 ) { navController?.navigate("subject_select_dialog") }
 
                 if (taskIdToEdit != null) {
                     TextField(
-                        value = parentTaskData.description.value.value,
+                        value = viewModel.parentTaskData.value.description.value.value,
                         onValueChange = {
-                            parentTaskData.description.apply { value = value.copy(value = it) }
+                            viewModel.parentTaskData.value.description.apply {
+                                value = value.copy(value = it)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -327,14 +326,14 @@ fun AddTaskScreen(
 
                 if (taskIdToEdit == null) {
                     Box(modifier = Modifier.padding(top = 20.dp)) // Spacer
-                    repeat(taskDatas.size) { index ->
+                    repeat(viewModel.taskDatas.size) { index ->
                         TaskListItem(
                             navController,
                             index,
-                            taskDatas.size,
-                            taskDatas[index],
-                            parentTaskData.dueDate.value.value ?: LocalDate.now()
-                        ) { taskDatas.removeAt(index) }
+                            viewModel.taskDatas.size,
+                            viewModel.taskDatas[index],
+                            viewModel.parentTaskData.value.dueDate.value.value ?: LocalDate.now()
+                        ) { viewModel.taskDatas.removeAt(index) }
                     }
                 }
             }
@@ -523,6 +522,9 @@ private fun TaskListItem(
 }
 
 class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
+    val parentTaskData = mutableStateOf(TaskData())
+    val taskDatas = mutableStateListOf(TaskData())
+
     private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
     private val _examToEdit: MutableStateFlow<Exam?> = MutableStateFlow(null)
     val taskToEdit: StateFlow<Task?> = _taskToEdit
@@ -573,6 +575,7 @@ data class TaskData(
     var reminderIndex: MutableState<TaskAttribute<Int>> = mutableStateOf(TaskAttribute(-2)),
     var subjectId: MutableState<TaskAttribute<Int?>> = mutableStateOf(TaskAttribute(null))
 ) {
+
     fun validate(isParentData: Boolean = false): Boolean {
         var isValid = true
         val trimmedTitle = title.value.value.trim()
