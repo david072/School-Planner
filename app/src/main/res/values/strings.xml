@@ -60,4 +60,5 @@
     <string name="move_tasks_move_tasks_option">Move:</string>
     <string name="add_task_fields_missing_error">Please fill out the required fields</string>
     <string name="add_test_button">Add Exam</string>
+    <string name="home_date_group_caption">%exams% exams, %tasksLeft% Tasks left</string>
 </resources>

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import de.david072.schoolplanner.R
 import de.david072.schoolplanner.database.entities.Exam
 import de.david072.schoolplanner.database.entities.Subject
 import de.david072.schoolplanner.database.entities.Task
@@ -149,13 +151,29 @@ fun DateListItem(
         Box(modifier = Modifier
             .fillMaxWidth()
             .clickable { isExpanded = !isExpanded }) {
-            Row {
-                Text(
-                    Utils.formattedDate(date, LocalContext.current),
-                    style = MaterialTheme.typography.h6
-                )
+            Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+                var exams = 0
+                var tasksLeft = 0
+                subjectGroups?.forEach { subjectGroup ->
+                    exams += subjectGroup.exams.size
+                    tasksLeft += subjectGroup.tasks.count { !it.completed.value }
+                }
 
-                Box(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    Text(
+                        Utils.formattedDate(date, LocalContext.current),
+                        style = MaterialTheme.typography.h6
+                    )
+
+                    Text(
+                        stringResource(R.string.home_date_group_caption)
+                            .replace("%exams%", exams.toString())
+                            .replace("%tasksLeft%", tasksLeft.toString()),
+                        style = MaterialTheme.typography.caption.copy(color = Color.Gray)
+                    )
+                }
+
+                Box(modifier = Modifier.fillMaxSize()) {
                     Icon(
                         Icons.Outlined.KeyboardArrowDown,
                         contentDescription = "",
@@ -257,26 +275,24 @@ fun SubjectListItem(
 
 // TODO: Add some sort of animation when the task moves in the list
 @Composable
-fun TaskListItem(task: Task, navController: NavController?, viewModel: HomeScreenViewModel) {
-    var completed by remember { mutableStateOf(task.completed) }
+fun TaskListItem(task: StateTask, navController: NavController?, viewModel: HomeScreenViewModel) {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.height(IntrinsicSize.Min)
     ) {
-        Checkbox(checked = completed, onCheckedChange = {
-            viewModel.setCompleted(task, it)
-            completed = it
+        Checkbox(checked = task.completed.value, onCheckedChange = {
+            viewModel.setCompleted(task.task, it)
         })
 
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .clickable {
-                    navController?.navigate("view_task/${task.uid}")
+                    navController?.navigate("view_task/${task.uid.value}")
                 }, contentAlignment = Alignment.CenterStart
         ) {
-            Text(task.title)
+            Text(task.title.value)
         }
     }
 }
@@ -301,7 +317,7 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
                 groups.forEach { (key, subjectGroups) ->
                     subjectGroups.forEach { subjectGroup ->
                         subjectGroup.tasks.forEach { task ->
-                            if (!it.contains(task)) subjectGroup.tasks.remove(task)
+                            if (!it.contains(task.task)) subjectGroup.tasks.remove(task)
                         }
 
                         if (subjectGroup.tasks.isEmpty() && subjectGroup.exams.isEmpty())
@@ -328,27 +344,28 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
                             for (i in 0 until subjectGroup.tasks.size) {
                                 val subjectGroupTask = subjectGroup.tasks[i]
-                                if (subjectGroupTask.uid == task.uid) {
-                                    if (subjectGroupTask != task) subjectGroup.tasks[i] = task
+                                if (subjectGroupTask.uid.value == task.uid) {
+                                    if (subjectGroupTask != StateTask(task)) subjectGroup.tasks[i] =
+                                        StateTask(task)
                                     return@processTasks
                                 }
                             }
 
-                            subjectGroup.tasks.add(task)
+                            subjectGroup.tasks.add(StateTask(task))
                             return@processTasks
                         }
 
                         groups[epochDay]!!.add(
                             SubjectGroup(
                                 mutableStateOf(task.getSubject(application)),
-                                mutableStateListOf(task)
+                                mutableStateListOf(StateTask(task))
                             )
                         )
                     } else {
                         groups[epochDay] = mutableStateListOf(
                             SubjectGroup(
                                 mutableStateOf(task.getSubject(application)),
-                                mutableStateListOf(task)
+                                mutableStateListOf(StateTask(task))
                             )
                         )
 
@@ -458,9 +475,23 @@ class HomeScreenViewModel(application: Application) : AndroidViewModel(applicati
 
 data class SubjectGroup(
     val subject: MutableState<Subject>,
-    val tasks: SnapshotStateList<Task> = mutableStateListOf(),
+    val tasks: SnapshotStateList<StateTask> = mutableStateListOf(),
     val exams: SnapshotStateList<Exam> = mutableStateListOf()
 )
+
+data class StateTask(
+    val uid: MutableState<Int>,
+    val title: MutableState<String>,
+    var completed: MutableState<Boolean>,
+    val task: Task
+) {
+    constructor(task: Task) : this(
+        mutableStateOf(task.uid),
+        mutableStateOf(task.title),
+        mutableStateOf(task.completed),
+        task
+    )
+}
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
