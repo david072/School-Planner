@@ -2,6 +2,7 @@ package de.david072.schoolplanner.screens
 
 import android.app.Application
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Parcel
 import androidx.compose.animation.*
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,10 +33,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.*
 import androidx.lifecycle.Observer
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.material.datepicker.CalendarConstraints
@@ -73,9 +75,14 @@ fun AddTaskScreen(
     taskIdToEdit: Int? = null
 ) {
     val context = LocalContext.current
-    val viewModel = viewModel<AddTaskViewModel>()
+    val viewModel = viewModel<AddTaskViewModel>(
+        factory = AddTaskViewModelFactory(
+            context.applicationContext as Application,
+            taskIdToEdit,
+            isExam
+        )
+    )
 
-    if (taskIdToEdit != null) viewModel.setTaskId(taskIdToEdit, isExam)
     val taskToEdit = viewModel.taskToEdit.collectAsState()
     val examToEdit = viewModel.examToEdit.collectAsState()
 
@@ -112,6 +119,8 @@ fun AddTaskScreen(
     val scaffoldState = rememberScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
+    var saveDraftDialogVisible by rememberSaveable { mutableStateOf(false) }
+
     // TODO: Remove this function and add a more visible error indicator on the text fields,
     //  at best with a message
     fun showErrorSnackbar() {
@@ -129,6 +138,17 @@ fun AddTaskScreen(
                     Icon(Icons.Filled.Add, "")
                 }
             }
+        }, onBackPressed = {
+            if (taskIdToEdit == null) {
+                if (viewModel.parentTaskData.value.isEmpty()) {
+                    it.popBackStack()
+                    return@AppTopAppBar
+                }
+
+                saveDraftDialogVisible = true
+            }
+            // TODO: Make this work when editing too
+            else it.popBackStack()
         })
     }, floatingActionButton = {
         ExtendedFloatingActionButton(onClick = {
@@ -220,6 +240,37 @@ fun AddTaskScreen(
             )
         }, backgroundColor = MaterialTheme.colors.primary)
     }) {
+        if (saveDraftDialogVisible) {
+            AlertDialog(
+                onDismissRequest = { saveDraftDialogVisible = false },
+                title = { Text("Save changes") },
+                text = { Text("By going back, the changes you made will be lost. Do you want to save them or continue without saving?") },
+                confirmButton = {
+                    Row {
+                        TextButton(onClick = {
+                            saveDraftDialogVisible = false
+                            viewModel.deleteDraft(context)
+                            navController?.popBackStack()
+                        }) {
+                            Text("Don't save")
+                        }
+
+                        TextButton(onClick = {
+                            saveDraftDialogVisible = false
+                            viewModel.saveDraft(context)
+                            navController?.popBackStack()
+                        }) {
+                            Text("Save draft")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { saveDraftDialogVisible = false }) {
+                        Text(stringResource(android.R.string.cancel))
+                    }
+                })
+        }
+
         Box(modifier = Modifier.padding(PaddingValues(all = 10.dp))) {
             val scrollState = rememberScrollState()
 
@@ -525,26 +576,52 @@ private fun TaskListItem(
     }
 }
 
-class AddTaskViewModel(application: Application) : AndroidViewModel(application) {
+class AddTaskViewModelFactory(
+    val application: Application,
+    private val taskIdToEdit: Int?,
+    private val isExam: Boolean
+) : ViewModelProvider.AndroidViewModelFactory(application) {
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T =
+        AddTaskViewModel(application, taskIdToEdit, isExam) as T
+}
+
+class AddTaskViewModel(application: Application, taskIdToEdit: Int?, private val isExam: Boolean) :
+    AndroidViewModel(application) {
     val parentTaskData = mutableStateOf(TaskData())
-    val taskDatas = mutableStateListOf(TaskData())
+    val taskDatas = mutableStateListOf<TaskData>()
 
     private val _taskToEdit: MutableStateFlow<Task?> = MutableStateFlow(null)
     private val _examToEdit: MutableStateFlow<Exam?> = MutableStateFlow(null)
     val taskToEdit: StateFlow<Task?> = _taskToEdit
     val examToEdit: StateFlow<Exam?> = _examToEdit
 
-    fun setTaskId(taskId: Int, isExam: Boolean = false) {
-        viewModelScope.launch {
-            val flow =
-                if (!isExam) TaskRepository(getApplication()).findById(taskId) else ExamRepository(
-                    getApplication()
-                ).findById(taskId)
-            flow.collect {
-                if (it is Task) _taskToEdit.value = it
-                else if (it is Exam) _examToEdit.value = it
+    // We need to account for the different modes (task / exam) and save somewhere else accordingly
+    private val parentDraftPrefix: String get() = "$PARENT_TASK_DATA_DRAFT_PREFIX-${if (isExam) "exam" else "task"}"
+    private val dataDraftPrefix: String get() = "$TASK_DATA_DRAFT_PREFIX-${if (isExam) "exam" else "task"}"
+
+    init {
+        if (taskIdToEdit != null) {
+            viewModelScope.launch {
+                val flow =
+                    if (!isExam) TaskRepository(getApplication()).findById(taskIdToEdit)
+                    else ExamRepository(getApplication()).findById(taskIdToEdit)
+                flow.collect {
+                    if (it is Task) _taskToEdit.value = it
+                    else if (it is Exam) _examToEdit.value = it
+                }
             }
         }
+
+        val sharedPrefs = application.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+        if (sharedPrefs.contains("$parentDraftPrefix-title"))
+            parentTaskData.value.load(sharedPrefs, parentDraftPrefix)
+
+        var index = 0
+        while (sharedPrefs.contains("$dataDraftPrefix-$index-title")) {
+            taskDatas.add(TaskData().apply { load(sharedPrefs, "$dataDraftPrefix-$index") })
+            index++
+        }
+        if (index == 0) taskDatas.add(TaskData())
     }
 
     fun insertAllTasks(tasks: List<Task>) {
@@ -570,6 +647,34 @@ class AddTaskViewModel(application: Application) : AndroidViewModel(application)
             ExamRepository(getApplication()).update(exam)
         }
     }
+
+    fun saveDraft(context: Context) {
+        val sharedPrefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+        sharedPrefs.edit {
+            if (!parentTaskData.value.isEmpty())
+                parentTaskData.value.save(this, parentDraftPrefix)
+
+            taskDatas.forEachIndexed { index, element ->
+                if (element.isEmpty()) return@forEachIndexed
+                element.save(this, "$dataDraftPrefix-$index")
+            }
+        }
+    }
+
+    fun deleteDraft(context: Context) {
+        val sharedPrefs = context.getSharedPreferences("MainActivity", Context.MODE_PRIVATE)
+        sharedPrefs.edit {
+            parentTaskData.value.deleteSaved(this, parentDraftPrefix)
+            taskDatas.forEachIndexed { index, element ->
+                element.deleteSaved(this, "$dataDraftPrefix-$index")
+            }
+        }
+    }
+
+    companion object {
+        private const val PARENT_TASK_DATA_DRAFT_PREFIX = "add-task-draft-parent-task-data"
+        private const val TASK_DATA_DRAFT_PREFIX = "add-task-draft-task-data"
+    }
 }
 
 data class TaskData(
@@ -579,6 +684,11 @@ data class TaskData(
     var reminderIndex: MutableState<TaskAttribute<Int>> = mutableStateOf(TaskAttribute(-2)),
     var subjectId: MutableState<TaskAttribute<Int?>> = mutableStateOf(TaskAttribute(null))
 ) {
+    fun isEmpty() = title.value.value.isEmpty() &&
+            description.value.value.isEmpty() &&
+            dueDate.value.value == null &&
+            reminderIndex.value.value == -2 &&
+            subjectId.value.value == null
 
     fun validate(isParentData: Boolean = false): Boolean {
         var isValid = true
@@ -625,6 +735,45 @@ data class TaskData(
 
         return if (dueDate != null) dueDate.minusDays(daysDifference) else LocalDate.now()
             .minusDays(daysDifference)
+    }
+
+    fun save(editor: SharedPreferences.Editor, prefix: String) {
+        with(editor) {
+            putString("$prefix-title", title.value.value)
+            putString("$prefix-description", description.value.value)
+            putLong(
+                "$prefix-dueDate",
+                if (dueDate.value.value != null) dueDate.value.value!!.toEpochDay() else -1
+            )
+            putInt("$prefix-reminderIndex", reminderIndex.value.value)
+            putInt("$prefix-subjectId", subjectId.value.value ?: -1)
+        }
+    }
+
+    fun load(sharedPrefs: SharedPreferences, prefix: String) {
+        title.value = title.value.copy(value = sharedPrefs.getString("$prefix-title", null) ?: "")
+        description.value =
+            description.value.copy(value = sharedPrefs.getString("$prefix-description", null) ?: "")
+        dueDate.value = dueDate.value.copy(
+            value = sharedPrefs.getLong("$prefix-dueDate", -1).let {
+                if (it == -1L) null
+                else LocalDate.ofEpochDay(it)
+            }
+        )
+        reminderIndex.value =
+            reminderIndex.value.copy(value = sharedPrefs.getInt("$prefix-reminderIndex", -2))
+        subjectId.value = subjectId.value.copy(
+            value = sharedPrefs.getInt("$prefix-subjectId", -1).let { if (it == -1) null else it })
+    }
+
+    fun deleteSaved(editor: SharedPreferences.Editor, prefix: String) {
+        with(editor) {
+            remove("$prefix-title")
+            remove("$prefix-description")
+            remove("$prefix-dueDate")
+            remove("$prefix-reminderIndex")
+            remove("$prefix-subjectId")
+        }
     }
 }
 

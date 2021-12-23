@@ -23,7 +23,7 @@ import de.david072.schoolplanner.util.Utils
 fun AppTopAppBar(
     navController: NavController? = null,
     backButton: Boolean = false,
-    onBackPressed: (() -> Unit)? = null,
+    onBackPressed: ((NavController) -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     if (!backButton || navController == null)
@@ -32,8 +32,8 @@ fun AppTopAppBar(
         title = { Text(text = stringResource(R.string.app_name)) },
         navigationIcon = {
             IconButton(onClick = {
-                navController.popBackStack()
-                onBackPressed?.invoke()
+                if (onBackPressed == null) navController.popBackStack()
+                else onBackPressed.invoke(navController)
             }) { Icon(Icons.Filled.ArrowBack, "") }
         },
         actions = actions
