@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ExperimentalGraphicsApi
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -88,6 +90,8 @@ fun AddSubjectScreen(navController: NavController, subjectIdToEdit: Int? = null)
                     .fillMaxWidth()
                     .padding(bottom = 15.dp),
                 maxLines = 1,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 label = { Text(stringResource(R.string.add_subject_name_label)) },
                 isError = nameIsError
             )
@@ -102,6 +106,8 @@ fun AddSubjectScreen(navController: NavController, subjectIdToEdit: Int? = null)
                         .weight(1f)
                         .padding(bottom = 15.dp, end = 5.dp),
                     maxLines = 1,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     label = { Text(stringResource(R.string.add_subject_abbreviation_label)) },
                     isError = abbreviationIsError
                 )
