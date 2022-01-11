@@ -61,4 +61,5 @@
     <string name="add_task_fields_missing_error">Please fill out the required fields</string>
     <string name="add_test_button">Add Exam</string>
     <string name="home_date_group_caption">%exams% exams, %tasksLeft% Tasks left</string>
+    <string name="notification_exam_due_content_text">%examTitle% (%subjectName%) takes place %dueDateInfo%!</string>
 </resources>

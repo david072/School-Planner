@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ExamDao {
+    @Query("SELECT * FROM exams")
+    fun getAll(): Flow<List<Exam>>
 
     @Query("SELECT * FROM exams WHERE uid LIKE :id")
     fun findById(id: Int): Flow<Exam>

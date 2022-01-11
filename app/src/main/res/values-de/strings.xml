@@ -61,4 +61,5 @@
     <string name="add_task_fields_missing_error">Bitte füllen Sie die erforderlichen Felder aus</string>
     <string name="add_test_button">Klassenarbeit hinzufügen</string>
     <string name="home_date_group_caption">%exams% Klassenarbeiten, %tasksLeft% Aufgaben übrig</string>
+    <string name="notification_exam_due_content_text">%examTitle% (%subjectName%) findet %dueDateInfo% statt!</string>
 </resources>

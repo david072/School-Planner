@@ -19,6 +19,8 @@ class ExamRepository {
         examDao = AppDatabase.instance(context).examDao()
     }
 
+    fun getAll(): Flow<List<Exam>> = examDao.getAll()
+
     fun findById(id: Int): Flow<Exam> = examDao.findById(id)
 
     fun getOrderedByDueDate(): Flow<List<Exam>> = examDao.getOrderedByDueDate()
