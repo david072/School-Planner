@@ -234,9 +234,17 @@ fun AddTaskScreen(
             )
         }, text = {
             Text(
-                if (taskToEdit.value == null && examToEdit.value == null)
-                    stringResource(if (!isExam) R.string.add_task_button else R.string.add_test_button)
-                else stringResource(R.string.general_save)
+                if (taskToEdit.value == null && examToEdit.value == null) {
+                    stringResource(
+                        if (!isExam) {
+                            if (viewModel.taskDatas.size == 1) R.string.add_task_button
+                            else R.string.add_tasks_button
+                        } else {
+                            if (viewModel.taskDatas.size == 1) R.string.add_test_button
+                            else R.string.add_tests_button
+                        }
+                    )
+                } else stringResource(R.string.general_save)
             )
         }, backgroundColor = MaterialTheme.colors.primary)
     }) {

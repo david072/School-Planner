@@ -60,6 +60,11 @@
     <string name="move_tasks_delete_tasks_option">Oder löschen:</string>
     <string name="add_task_fields_missing_error">Bitte füllen Sie die erforderlichen Felder aus</string>
     <string name="add_test_button">Klassenarbeit hinzufügen</string>
-    <string name="home_date_group_caption">%exams% Klassenarbeiten, %tasksLeft% Aufgaben übrig</string>
     <string name="notification_exam_due_content_text">%examTitle% (%subjectName%) findet %dueDateInfo% statt!</string>
+    <string name="home_date_group_caption_exams_singluar">1 Klassenarbeit</string>
+    <string name="home_date_group_caption_exams_plural">%exams% Klassenarbeiten</string>
+    <string name="home_date_group_caption_tasks_plural">%tasks% Aufgaben übrig</string>
+    <string name="home_date_group_caption_tasks_singluar">1 Aufgabe übrig</string>
+    <string name="add_tasks_button">Aufgaben hinzufügen</string>
+    <string name="add_tests_button">Klassenarbeiten hinzufügen</string>
 </resources>

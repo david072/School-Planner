@@ -60,6 +60,11 @@
     <string name="move_tasks_move_tasks_option">Move:</string>
     <string name="add_task_fields_missing_error">Please fill out the required fields</string>
     <string name="add_test_button">Add Exam</string>
-    <string name="home_date_group_caption">%exams% exams, %tasksLeft% Tasks left</string>
     <string name="notification_exam_due_content_text">%examTitle% (%subjectName%) takes place %dueDateInfo%!</string>
+    <string name="home_date_group_caption_exams_singluar">1 exam</string>
+    <string name="home_date_group_caption_exams_plural">%exams% exams</string>
+    <string name="home_date_group_caption_tasks_singluar">1 task left</string>
+    <string name="home_date_group_caption_tasks_plural">%tasks% tasks left</string>
+    <string name="add_tasks_button">Add Tasks</string>
+    <string name="add_tests_button">Add Exams</string>
 </resources>

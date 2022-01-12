@@ -165,10 +165,18 @@ fun DateListItem(
                         style = MaterialTheme.typography.h6
                     )
 
-                    Text(
-                        stringResource(R.string.home_date_group_caption)
+                    val examsText =
+                        if (exams == 1) stringResource(R.string.home_date_group_caption_exams_singluar)
+                        else stringResource(R.string.home_date_group_caption_exams_plural)
                             .replace("%exams%", exams.toString())
-                            .replace("%tasksLeft%", tasksLeft.toString()),
+
+                    val tasksLeftText =
+                        if (tasksLeft == 1) stringResource(R.string.home_date_group_caption_tasks_singluar)
+                        else stringResource(R.string.home_date_group_caption_tasks_plural)
+                            .replace("%tasks%", tasksLeft.toString())
+
+                    Text(
+                        "$examsText, $tasksLeftText",
                         style = MaterialTheme.typography.caption.copy(color = Color.Gray)
                     )
                 }
