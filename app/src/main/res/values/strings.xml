@@ -67,4 +67,5 @@
     <string name="home_date_group_caption_tasks_plural">%tasks% tasks left</string>
     <string name="add_tasks_button">Add Tasks</string>
     <string name="add_tests_button">Add Exams</string>
+    <string name="home_date_group_caption_done">Done!</string>
 </resources>

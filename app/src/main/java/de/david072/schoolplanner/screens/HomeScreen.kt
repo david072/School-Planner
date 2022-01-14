@@ -133,10 +133,24 @@ fun DateListItem(
     date: Long,
     subjectGroups: SnapshotStateList<SubjectGroup>?
 ) {
+    val isCompleted =
+        subjectGroups?.find { it.hasNonCompletedTasks() } == null && subjectGroups?.find { it.exams.isNotEmpty() } == null
+
+    var didCollapseGroup by remember { mutableStateOf(false) }
     var isExpanded by rememberSaveable {
         mutableStateOf(
-            LocalDate.ofEpochDay(date).isBefore(LocalDate.now().plusMonths(1))
+            LocalDate.ofEpochDay(date).isBefore(LocalDate.now().plusMonths(1)).let {
+                // Search for subject groups that have non-completed tasks
+                // Otherwise, if all tasks are completed, it should be collapsed
+                if (it) return@let !isCompleted
+                it
+            }
         )
+    }
+
+    if (isCompleted && !didCollapseGroup) {
+        isExpanded = !isCompleted
+        didCollapseGroup = true
     }
 
     val arrowAngle by animateFloatAsState(
@@ -165,18 +179,24 @@ fun DateListItem(
                         style = MaterialTheme.typography.h6
                     )
 
-                    val examsText =
-                        if (exams == 1) stringResource(R.string.home_date_group_caption_exams_singluar)
-                        else stringResource(R.string.home_date_group_caption_exams_plural)
-                            .replace("%exams%", exams.toString())
+                    val subtitle =
+                        if (isCompleted) {
+                            stringResource(R.string.home_date_group_caption_done)
+                        } else {
+                            val examsText =
+                                if (exams == 1) stringResource(R.string.home_date_group_caption_exams_singluar)
+                                else stringResource(R.string.home_date_group_caption_exams_plural)
+                                    .replace("%exams%", exams.toString())
 
-                    val tasksLeftText =
-                        if (tasksLeft == 1) stringResource(R.string.home_date_group_caption_tasks_singluar)
-                        else stringResource(R.string.home_date_group_caption_tasks_plural)
-                            .replace("%tasks%", tasksLeft.toString())
+                            val tasksLeftText =
+                                if (tasksLeft == 1) stringResource(R.string.home_date_group_caption_tasks_singluar)
+                                else stringResource(R.string.home_date_group_caption_tasks_plural)
+                                    .replace("%tasks%", tasksLeft.toString())
+                            "$examsText, $tasksLeftText"
+                        }
 
                     Text(
-                        "$examsText, $tasksLeftText",
+                        subtitle,
                         style = MaterialTheme.typography.caption.copy(color = Color.Gray)
                     )
                 }
@@ -488,7 +508,10 @@ data class SubjectGroup(
     val subject: MutableState<Subject>,
     val tasks: SnapshotStateList<StateTask> = mutableStateListOf(),
     val exams: SnapshotStateList<Exam> = mutableStateListOf()
-)
+) {
+    // If a task that is not completed exists in the tasks list, this should return true
+    fun hasNonCompletedTasks(): Boolean = tasks.find { !it.completed } != null
+}
 
 @Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)

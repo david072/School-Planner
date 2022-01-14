@@ -67,4 +67,5 @@
     <string name="home_date_group_caption_tasks_singluar">1 Aufgabe übrig</string>
     <string name="add_tasks_button">Aufgaben hinzufügen</string>
     <string name="add_tests_button">Klassenarbeiten hinzufügen</string>
+    <string name="home_date_group_caption_done">Abgeschlossen!</string>
 </resources>
